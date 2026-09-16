@@ -1,17 +1,18 @@
 {
-"name": "로그릿",
-"short_name": "로그릿",
-"description": "매출장부와 스케줄을 하나로 합친 효율적인 관리 프로그램",
-"start_url": "/ROGRIT/index.html",
-"display": "standalone",
-"background_color": "#000000",
-"theme_color": "#6366f1",
-"icons": [
-{
-"src": "icon.png",
-"sizes": "512x512",
-"type": "image/png",
-"purpose": "any maskable"
-}
-]
+  "name": "로그릿",
+  "short_name": "로그릿",
+  "description": "매출장부와 스케줄을 하나로 합친 효율적인 관리 프로그램",
+  "start_url": "/LOGRIT/",
+  "scope": "/LOGRIT/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
