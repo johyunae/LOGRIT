@@ -11,9 +11,9 @@
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/LOGRIT/icon-192.svg",
+      "src": "/LOGRIT/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
