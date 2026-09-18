@@ -122,10 +122,11 @@
     <div id="toast">알림</div>
 
     <script>
-        // 악성 서비스워커(캐시) 완벽 삭제 및 무한 로딩 원천 차단
+        // PWA 설치를 위해 LOGRIT 전용 서비스워커 등록
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let r of registrations) { r.unregister(); }
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/LOGRIT/sw.js', { scope: '/LOGRIT/' })
+                    .catch(err => console.log('Service Worker registration failed:', err));
             });
         }
 
