@@ -1,19 +1,44 @@
-const CACHE_NAME = 'logrit-killer-v197';
+const CACHE_NAME = 'logrit-pwa-v211';
+const APP_SHELL = [
+  '/LOGRIT/',
+  '/LOGRIT/index.html',
+  '/LOGRIT/manifest.json',
+  '/LOGRIT/icon.png',
+  '/LOGRIT/icon-192.png'
+];
 
-self.addEventListener('install', (e) => {
-  self.skipWaiting(); // 무조건 새 버전 즉시 설치
-});
-
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) => {
-      // 과거의 모든 캐시 찌꺼기를 영원히 삭제
-      return Promise.all(keys.map(key => caches.delete(key)));
-    }).then(() => self.clients.claim())
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  // 캐시를 무시하고 무조건 최신 코드를 다운로드
-  e.respondWith(fetch(e.request).catch((err) => console.log('Network Error', err)));
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        if (response && response.ok && event.request.url.startsWith(self.location.origin + '/LOGRIT/')) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() =>
+        caches.match(event.request).then((cached) =>
+          cached || caches.match('/LOGRIT/index.html')
+        )
+      )
+  );
 });
