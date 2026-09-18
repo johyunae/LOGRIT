@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#6366f1">
+<title>로그릿 설치</title>
+<link rel="manifest" href="/LOGRIT/install-logrit/manifest.json?v=1">
+</head><body>
+<h1>로그릿 앱 설치</h1><p id="s">설치 준비 중</p>
+<script>
+window.addEventListener('beforeinstallprompt',e=>{document.getElementById('s').textContent='설치 가능';});
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/LOGRIT/install-logrit/sw.js',{scope:'/LOGRIT/install-logrit/'});}
+</script></body></html>
