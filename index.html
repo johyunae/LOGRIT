@@ -122,14 +122,42 @@
     <div id="toast">알림</div>
 
     <script>
-        // 설치 판정 테스트: 기존 LOGRIT 서비스워커만 해제하고 앱 데이터는 유지
+        // LOGRIT PWA 서비스워커 등록
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for (const r of registrations) {
-                    if (new URL(r.scope).pathname.startsWith('/LOGRIT/')) r.unregister();
-                }
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/LOGRIT/sw.js', { scope: '/LOGRIT/' })
+                    .catch(err => console.log('Service Worker registration failed:', err));
             });
         }
+
+        // PWA 설치 판정 진단
+        window.__logritInstallPromptSeen = false;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            window.__logritInstallPromptSeen = true;
+            window.__logritDeferredInstallPrompt = e;
+        });
+
+        window.openPwaDiagnostic = async () => {
+            let swText = '지원 안 됨';
+            if ('serviceWorker' in navigator) {
+                try {
+                    const reg = await navigator.serviceWorker.getRegistration('/LOGRIT/');
+                    swText = reg ? ('등록됨 · ' + reg.scope) : '등록 안 됨';
+                } catch(e) { swText = '확인 오류'; }
+            }
+            const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            const lines = [
+                '주소: ' + location.href,
+                'HTTPS: ' + (location.protocol === 'https:' ? '정상' : '아님'),
+                'Manifest: ' + (manifestLink ? manifestLink.href : '없음'),
+                'Service Worker: ' + swText,
+                '설치 이벤트: ' + (window.__logritInstallPromptSeen ? '발생함' : '발생 안 함'),
+                'Standalone: ' + (standalone ? '예' : '아니오'),
+                'User Agent: ' + navigator.userAgent
+            ];
+            alert('LOGRIT PWA 진단\n\n' + lines.join('\n'));
+        };
 
         const STORAGE_KEY = 'logrit_v130_master_storage';
         let db = [];
@@ -387,6 +415,10 @@
                                     ${RECORD_COLORS.map(color => `<div class="flex flex-col items-center min-w-0"><div class="w-8 h-8 rounded-full" style="background:${color}"></div><button type="button" data-color="${color}" onclick="window.editRecordColorLabel('${color}')" class="record-color-label mt-2 px-1 py-1 text-[11px] font-bold text-dim max-w-[48px] truncate active:opacity-60">${window.getRecordColorLabels()[color] || '이름'}</button></div>`).join('')}
                                 </div>
                             </div>
+                            <button onclick="openPwaDiagnostic()" class="w-full p-5 mb-6 bg-card border border-custom rounded-2xl font-bold flex items-center justify-between shadow-sm cursor-pointer active:opacity-70 text-[15px]">
+                                <div class="flex items-center gap-3"><i data-lucide="scan-search" class="text-indigo-400"></i> 앱 설치 상태 진단</div>
+                                <i data-lucide="chevron-right" class="text-dim w-4 h-4"></i>
+                            </button>
                             <h3 class="text-[13px] uppercase font-bold mb-3 px-1 tracking-widest text-dim">데이터 관리</h3>
                             <div class="grid grid-cols-1 gap-3">
                                 <button onclick="openImportModal()" class="w-full p-5 bg-card border border-custom rounded-2xl font-bold flex items-center justify-between shadow-sm cursor-pointer active:opacity-70 text-[15px]">
