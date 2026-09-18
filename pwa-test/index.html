@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#6366f1">
+<title>LOGRIT PWA Test</title>
+<link rel="manifest" href="/LOGRIT/pwa-test/manifest.json">
+</head>
+<body>
+<h1>LOGRIT PWA 설치 테스트</h1>
+<p id="status">설치 판정 대기 중</p>
+<script>
+window.addEventListener('beforeinstallprompt',e=>{
+ e.preventDefault(); window.deferredPrompt=e;
+ document.getElementById('status').textContent='설치 가능';
+});
+if('serviceWorker' in navigator){
+ navigator.serviceWorker.register('/LOGRIT/pwa-test/sw.js',{scope:'/LOGRIT/pwa-test/'});
+}
+</script>
+</body>
+</html>
