@@ -139,24 +139,71 @@
 
         window.openPwaDiagnostic = async () => {
             let swText = '지원 안 됨';
+            let manifestText = '확인 안 됨';
+            let icon192Text = '확인 안 됨';
+            let icon512Text = '확인 안 됨';
+            let manifestData = null;
+
             if ('serviceWorker' in navigator) {
                 try {
                     const reg = await navigator.serviceWorker.getRegistration('/LOGRIT/');
                     swText = reg ? ('등록됨 · ' + reg.scope) : '등록 안 됨';
                 } catch(e) { swText = '확인 오류'; }
             }
-            const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
             const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink) {
+                try {
+                    const res = await fetch(manifestLink.href, { cache: 'no-store' });
+                    manifestText = res.ok ? ('정상 · HTTP ' + res.status) : ('오류 · HTTP ' + res.status);
+                    if (res.ok) manifestData = await res.json();
+                } catch(e) { manifestText = '읽기 실패 · ' + e.message; }
+            } else {
+                manifestText = '링크 없음';
+            }
+
+            const checkImage = async (url) => {
+                try {
+                    const res = await fetch(url, { cache: 'no-store' });
+                    if (!res.ok) return '오류 · HTTP ' + res.status;
+                    const blob = await res.blob();
+                    return await new Promise(resolve => {
+                        const img = new Image();
+                        img.onload = () => { URL.revokeObjectURL(img.src); resolve('정상 · ' + img.naturalWidth + '×' + img.naturalHeight + ' · ' + blob.type); };
+                        img.onerror = () => resolve('이미지 해석 실패 · ' + blob.type);
+                        img.src = URL.createObjectURL(blob);
+                    });
+                } catch(e) { return '읽기 실패 · ' + e.message; }
+            };
+
+            icon192Text = await checkImage('/LOGRIT/icon-192.png');
+            icon512Text = await checkImage('/LOGRIT/icon.png');
+
+            const standaloneMedia = window.matchMedia('(display-mode: standalone)').matches;
+            const fullscreenMedia = window.matchMedia('(display-mode: fullscreen)').matches;
+            const minimalUiMedia = window.matchMedia('(display-mode: minimal-ui)').matches;
+            const iosStandalone = navigator.standalone === true;
+            const displayMode = standaloneMedia ? 'standalone' : (fullscreenMedia ? 'fullscreen' : (minimalUiMedia ? 'minimal-ui' : 'browser'));
+
             const lines = [
                 '주소: ' + location.href,
                 'HTTPS: ' + (location.protocol === 'https:' ? '정상' : '아님'),
-                'Manifest: ' + (manifestLink ? manifestLink.href : '없음'),
+                'Manifest 연결: ' + (manifestLink ? manifestLink.href : '없음'),
+                'Manifest 응답: ' + manifestText,
+                'Manifest id: ' + (manifestData?.id || '없음'),
+                'start_url: ' + (manifestData?.start_url || '없음'),
+                'scope: ' + (manifestData?.scope || '없음'),
+                'display: ' + (manifestData?.display || '없음'),
+                '192 아이콘: ' + icon192Text,
+                '512 아이콘: ' + icon512Text,
                 'Service Worker: ' + swText,
                 '설치 이벤트: ' + (window.__logritInstallPromptSeen ? '발생함' : '발생 안 함'),
-                'Standalone: ' + (standalone ? '예' : '아니오'),
+                '현재 display-mode: ' + displayMode,
+                'navigator.standalone: ' + (iosStandalone ? '예' : '아니오'),
+                'referrer: ' + (document.referrer || '없음'),
                 'User Agent: ' + navigator.userAgent
             ];
-            alert('LOGRIT PWA 진단\n\n' + lines.join('\n'));
+            alert('LOGRIT PWA 상세 진단\n\n' + lines.join('\n'));
         };
 
         const STORAGE_KEY = 'logrit_v130_master_storage';
