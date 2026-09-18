@@ -91,6 +91,19 @@
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: var(--text-bold); color: var(--bg-color); padding: 14px 28px; border-radius: 50px; font-size: 14px; font-weight:bold; z-index: 9999; opacity: 0; visibility: hidden; transition: 0.3s; pointer-events: none; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
         #toast.visible { opacity: 1; visibility: visible; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+    
+        /* 전체 세로 여백을 살짝 압축 — 폰트 크기는 유지 */
+        .input-field { padding-top: 13px; padding-bottom: 13px; }
+        .p-5 { padding-top: 1.05rem !important; padding-bottom: 1.05rem !important; }
+        .py-4 { padding-top: 0.85rem !important; padding-bottom: 0.85rem !important; }
+        .py-3 { padding-top: 0.65rem !important; padding-bottom: 0.65rem !important; }
+        .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.25rem !important; }
+        .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.85rem !important; }
+        .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.65rem !important; }
+        .mb-8 { margin-bottom: 1.6rem !important; }
+        .mb-6 { margin-bottom: 1.25rem !important; }
+        .mb-4 { margin-bottom: 0.85rem !important; }
+
     </style>
 </head>
 <body class="pb-40 no-scrollbar">
