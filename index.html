@@ -779,6 +779,7 @@
                 departure: document.getElementById('f-departure').value, 
                 arrival: document.getElementById('f-arrival').value, 
                 people: parseInt(document.getElementById('f-people').value || 0), 
+                color: document.getElementById('f-color')?.value || '', 
                 updatedAt: Date.now() 
             }; 
             if(currentEditId) db = db.map(x => String(x.id) === currentEditId ? record : x); else db.push(record); 
