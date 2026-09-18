@@ -122,11 +122,12 @@
     <div id="toast">알림</div>
 
     <script>
-        // PWA 설치를 위해 LOGRIT 전용 서비스워커 등록
+        // 설치 판정 테스트: 기존 LOGRIT 서비스워커만 해제하고 앱 데이터는 유지
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/LOGRIT/sw.js', { scope: '/LOGRIT/' })
-                    .catch(err => console.log('Service Worker registration failed:', err));
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (const r of registrations) {
+                    if (new URL(r.scope).pathname.startsWith('/LOGRIT/')) r.unregister();
+                }
             });
         }
 
