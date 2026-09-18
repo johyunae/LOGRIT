@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>로그릿</title>
     <meta name="theme-color" content="#000000">
-    <link rel="icon" type="image/png" href="./icon.png">
-    <link rel="apple-touch-icon" href="./icon.png">
+    <link rel="icon" type="image/png" href="/LOGRIT/icon.png">
+    <link rel="apple-touch-icon" href="/LOGRIT/icon.png">
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -73,7 +73,7 @@
         .date-num { font-size: 16px; font-weight: 800; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin: 2px auto 0; transition: 0.2s; }
         .is-today .date-num { background: var(--brand-color); color: white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .holiday-text { font-size: 9.5px; font-weight: 800; color: var(--sun-color); text-align: center; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; padding: 0 2px; line-height: 1.1; letter-spacing: -0.05em; }
-        .memo-strip { font-size: 11.5px; padding: 2px 4px; color: var(--text-main); white-space: nowrap; overflow: hidden; font-weight: 600; letter-spacing: -0.05em; }
+        .memo-strip { font-size: 11.5px; padding: 2px 4px; color: var(--text-main); white-space: nowrap; overflow: hidden; font-weight: 600; letter-spacing: -0.05em; border-radius: 4px; margin-bottom: 1px; }
         .sun { color: var(--sun-color) !important; } .sat { color: var(--sat-color) !important; }
 
         .input-field { width: 100%; background-color: var(--input-bg); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 16px; color: var(--text-bold); outline: none; font-size: 16px; font-weight: bold; transition: border-color 0.2s; }
@@ -182,6 +182,17 @@
         
         window.navTo = (nav) => { currentNav = nav; selectedDate = null; searchTerm = ""; filterMonth = null; render(); window.scrollTo(0,0); };
         window.moveMonth = (v) => { calContext = new Date(calContext.getFullYear(), calContext.getMonth() + v, 1); selectedDate = null; render(); };
+        window.searchCalendarMonth = (value) => {
+            const raw = String(value || '').trim().replace(/년|월/g, '.').replace(/[-\/\s]+/g, '.');
+            const parts = raw.split('.').filter(Boolean);
+            let year, month;
+            if (parts.length >= 2) { year = parseInt(parts[0], 10); month = parseInt(parts[1], 10); }
+            else if (/^\d{6}$/.test(raw)) { year = parseInt(raw.slice(0,4),10); month = parseInt(raw.slice(4),10); }
+            if (!Number.isInteger(year) || year < 1900 || year > 2100 || !Number.isInteger(month) || month < 1 || month > 12) { showToast('연도와 달을 입력해 주세요. 예: 2026.9'); return; }
+            calContext = new Date(year, month - 1, 1); selectedDate = null; render();
+        };
+        window.handleMonthSearchKey = (e) => { if (e.key === 'Enter') window.searchCalendarMonth(e.target.value); };
+
         window.goToToday = () => { const today = getLocalToday(); calContext = new Date(); selectedDate = today; currentNav = 'e_cal'; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); openDailyModal(today); };
         window.openSettings = () => { currentNav = 'settings'; render(); };
         window.handleDateTouch = (dateStr) => { selectedDate = dateStr; render(); openDailyModal(dateStr); };
@@ -215,9 +226,11 @@
         };
         function getHoliday(y, m, d) {
             const mm = String(m).padStart(2, '0'); const dd = String(d).padStart(2, '0'); const dStr = `${y}-${mm}-${dd}`;
-            if (mm === '01' && dd === '01') return '신정'; if (mm === '03' && dd === '01') return '삼일절'; if (mm === '05' && dd === '05') return '어린이날'; if (mm === '06' && dd === '06') return '현충일'; if (mm === '08' && dd === '15') return '광복절'; if (mm === '10' && dd === '03') return '개천절'; if (mm === '10' && dd === '09') return '한글날'; if (mm === '12' && dd === '25') return '성탄절';
+            if (mm === '01' && dd === '01') return '신정'; if (mm === '03' && dd === '01') return '삼일'; if (mm === '05' && dd === '05') return '어린이날'; if (mm === '06' && dd === '06') return '현충일'; if (mm === '07' && dd === '17') return '제헌'; if (mm === '08' && dd === '15') return '광복'; if (mm === '10' && dd === '03') return '개천'; if (mm === '10' && dd === '09') return '한글날'; if (mm === '12' && dd === '25') return '성탄';
             const f = Math.floor, G = y % 19, C = f(y / 100); const H = (C - f(C / 4) - f((8 * C + 13) / 25) + 19 * G + 15) % 30; const I = H - f(H / 28) * (1 - f(29 / (H + 1)) * f((21 - G) / 11)); const J = (y + f(y / 4) + I + 2 - C + f(C / 4)) % 7; const L = I - J, eMonth = 3 + f((L + 40) / 44), eDay = L + 28 - 31 * f(eMonth / 4);
-            if (m === eMonth && d === eDay) return '부활절';
+            if (m === eMonth && d === eDay) return '부활';
+            const july1 = new Date(y, 6, 1); const firstSundayJuly = 1 + ((7 - july1.getDay()) % 7);
+            if (m === 7 && d === firstSundayJuly) return '맥추감사';
             let nov1 = new Date(y, 10, 1); let offset = nov1.getDay() === 0 ? 0 : 7 - nov1.getDay(); let thanksDay = 1 + offset + 14;
             if (m === 11 && d === thanksDay) return '추수감사';
             if (lunarHolidays[dStr]) return lunarHolidays[dStr];
@@ -237,7 +250,7 @@
                 }
             }
             return `
-                <div onclick="openEntryModal('${item.id}')" class="bg-card p-5 rounded-[1.5rem] mb-3 border border-custom shadow-md text-left active:opacity-60 transition-all cursor-pointer">
+                <div onclick="openEntryModal('${item.id}')" class="bg-card p-5 rounded-[1.5rem] mb-3 border border-custom shadow-md text-left active:opacity-60 transition-all cursor-pointer" style="${item.color ? `border-left:6px solid ${item.color}` : ''}">
                     <div class="flex justify-between items-center border-b border-custom pb-3 mb-3">
                         <span class="font-extrabold text-[18px] uppercase tracking-wide" style="color: var(--brand-color)">${showDate ? item.date+' ' : ''}${smartTimeFormat(item.time)}</span>
                         <i data-lucide="chevron-right" class="w-5 h-5 text-dim opacity-60"></i>
@@ -257,7 +270,7 @@
             const listContainer = document.getElementById('record-list-content');
             if (listContainer) {
                 let filtered = filterMonth ? db.filter(x => x.date.startsWith(filterMonth)) : db;
-                filtered = filtered.filter(it => (it.note||'').toLowerCase().includes(searchTerm) || (it.supplier||'').toLowerCase().includes(searchTerm));
+                filtered = filtered.filter(it => (it.note||'').toLowerCase().includes(searchTerm) || (it.supplier||'').toLowerCase().includes(searchTerm) || (it.departure||'').toLowerCase().includes(searchTerm) || (it.arrival||'').toLowerCase().includes(searchTerm));
                 filtered = sortMaster(filtered);
                 let runningTotal = 0;
                 listContainer.innerHTML = filtered.map(x => { runningTotal += Number(x.amount || 0); return renderItemCard(x, true, runningTotal, true); }).join('') || `<p class="text-center py-24 opacity-50 font-bold text-[15px] text-dim">기록이 없습니다.</p>`;
@@ -285,20 +298,22 @@
                     const holHtml = holName ? `<div class="holiday-text">${holName}</div>` : '';
                     gridHtml += `<div onclick="handleDateTouch('${dStr}');" class="memo-cell ${isT?'is-today':''} ${selectedDate===dStr?'is-selected':''}">
                         <div class="flex flex-col items-center justify-start shrink-0 w-full min-h-[36px]"><div class="date-num ${dCls}">${d}</div>${holHtml}</div>
-                        <div class="flex-1 overflow-hidden px-0.5 mt-0.5">${items.map(it => `<div class="memo-strip">${smartTimeFormat(it.time)} ${cleanText(it.supplier, it.note.substring(0,5))}</div>`).join('')}</div>
+                        <div class="flex-1 overflow-hidden px-0.5 mt-0.5">${items.map(it => `<div class="memo-strip" style="${it.color ? `background:${it.color};color:white;` : ''}">${smartTimeFormat(it.time)} ${cleanText(it.supplier, it.note.substring(0,5))}</div>`).join('')}</div>
                     </div>`;
                 }
                 
                 root.innerHTML = `
                     <div class="animate-in fade-in">
-                        <div class="sticky-sub px-5 py-5 shadow-sm">
+                        <div class="sticky-sub px-5 pt-2 pb-4 shadow-sm">
                             <div class="flex items-baseline gap-2 mb-1">
-                                <h2 class="text-3xl font-black text-important">${m+1}월</h2>
-                                <span class="text-lg font-bold text-dim opacity-70 tracking-wider">${monthNamesEn[m]}</span>
+                                <h2 class="text-3xl font-black text-important">${m+1}</h2>
+                                <span class="text-lg font-medium italic text-dim opacity-60 tracking-wide" style="font-family: Georgia, serif;">${monthNamesEn[m]} ${y}</span>
                             </div>
+                            
                             <div class="grid grid-cols-7 text-center text-[12px] font-extrabold text-dim mt-4"><div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div></div>
                         </div>
                         <div class="calendar-grid">${gridHtml}</div>
+                        <div class="px-5 mt-8"><div class="flex gap-2"><input type="text" inputmode="numeric" placeholder="년.월 검색  예: 2026.9" class="input-field !py-2.5 text-[14px]" onkeydown="window.handleMonthSearchKey(event)"><button onclick="window.searchCalendarMonth(this.previousElementSibling.value)" class="px-4 rounded-xl bg-sub border border-custom font-bold text-[13px] cursor-pointer">검색</button></div></div>
                         <div class="flex justify-center mt-20 mb-32"><div class="flex gap-1 bg-sub p-1 rounded-xl border border-custom"><button onclick="moveMonth(-1)" class="p-4 active:scale-90 text-important cursor-pointer"><i data-lucide="chevron-left"></i></button><button onclick="moveMonth(1)" class="p-4 active:scale-90 text-important cursor-pointer"><i data-lucide="chevron-right"></i></button></div></div>
                     </div>`;
             } else if (currentNav === 'list') {
@@ -308,13 +323,26 @@
             } else if (currentNav === 's_cal') {
                 const mData = sortMaster(db.filter(x => x.date.startsWith(mPrefix) && Number(x.amount) !== 0));
                 const total = mData.reduce((a,b)=>a+Number(b.amount), 0);
+                const yearPrefix = `${calContext.getFullYear()}-`;
+                const yData = db.filter(x => x.date.startsWith(yearPrefix) && Number(x.amount) !== 0);
+                const yearTotal = yData.reduce((a,b) => a + Number(b.amount), 0);
                 const bySupp = mData.reduce((acc, c) => { const n = cleanText(c.supplier, '기타'); if(!acc[n]) acc[n] = { amount: 0, count: 0 }; acc[n].amount += Number(c.amount); acc[n].count += 1; return acc; }, {});
                 let running = 0;
                 root.innerHTML = `
                     <div class="animate-in fade-in text-left text-important">
                         <div class="sticky-sub px-5 py-5 border-b border-custom shadow-sm bg-primary">
+                            <div class="flex items-center justify-between mb-3">
+                                <button onclick="moveMonth(-1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-sub active:scale-90 transition-transform cursor-pointer" aria-label="이전 달"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                                <div class="text-center whitespace-nowrap"><span class="text-2xl font-black text-important">${calContext.getMonth()+1}</span><span class="text-[15px] font-medium italic text-dim opacity-60 tracking-wide ml-2" style="font-family: Georgia, serif;">${monthNamesEn[calContext.getMonth()]} ${calContext.getFullYear()}</span></div>
+                                <button onclick="moveMonth(1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-sub active:scale-90 transition-transform cursor-pointer" aria-label="다음 달"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                            </div>
                             <h2 class="text-3xl font-black ${total < 0 ? 'text-red-400' : ''}" style="${total >= 0 ? 'color: var(--brand-color)' : ''}">${formatKRW(total)}원</h2>
+                            <div class="flex items-center justify-between mt-3 px-4 py-3 rounded-2xl bg-sub border border-custom">
+                                <span class="text-[13px] font-bold text-dim">${calContext.getFullYear()}년 연매출</span>
+                                <b class="text-[18px] font-black ${yearTotal < 0 ? 'text-red-400' : 'text-important'}">${formatKRW(yearTotal)}원</b>
+                            </div>
                             <p class="text-[13px] font-bold uppercase tracking-widest mt-1 text-dim">${mPrefix} 통계 / ${mData.length}건의 기록</p>
+                            <div class="flex gap-2 mt-4"><input type="text" inputmode="numeric" placeholder="년.월 검색  예: 2026.9" class="input-field !py-2.5 text-[14px]" onkeydown="window.handleMonthSearchKey(event)"><button onclick="window.searchCalendarMonth(this.previousElementSibling.value)" class="px-4 rounded-xl bg-sub border border-custom font-bold text-[13px] cursor-pointer">검색</button></div>
                         </div>
                         <div class="px-5 pt-8">
                             <h3 class="text-[13px] font-bold mb-4 px-1 tracking-widest text-dim">거래처별 합계 (터치 시 해당 월 기록)</h3>
@@ -494,7 +522,8 @@
                         </button>
                     </div>
                     <input type="file" id="backup-file-input" accept=".srt,.txt" class="hidden" onchange="handleFileUpload(event)">
-                    <textarea id="import-input" class="input-field h-36 p-4 text-[15px] mb-5 text-important hidden" placeholder=""></textarea>
+                    <textarea id="import-input" class="input-field h-36 p-4 text-[15px] mb-3 text-important hidden" placeholder=""></textarea>
+                    <div class="flex items-center gap-2 mb-4"><span class="text-[13px] font-bold text-dim whitespace-nowrap">복원 시작</span><input type="number" id="import-start-year" value="2024" min="1900" max="2100" class="input-field !py-2 !px-3 text-[14px]" onchange="if(document.getElementById('import-input').value) processImport()"><span class="text-[12px] font-bold text-dim">년</span><input type="number" id="import-start-month" value="1" min="1" max="12" class="input-field !py-2 !px-3 text-[14px]" onchange="if(document.getElementById('import-input').value) processImport()"><span class="text-[12px] font-bold text-dim whitespace-nowrap">월부터</span></div>
                     
                     <div id="import-preview" class="max-h-64 overflow-y-auto space-y-2 mb-5 text-important"></div>
                     <div id="import-btns" class="hidden">
@@ -510,21 +539,28 @@
             const file = e.target.files[0];
             if (!file) return;
             showToast("파일을 분석 중입니다...");
-            
-            const tryRead = (encoding) => {
-                const reader = new FileReader();
-                reader.onload = (evt) => { 
-                    let text = evt.target.result;
-                    if (encoding === 'UTF-8' && (text.includes('') || text.includes('웱'))) {
-                        tryRead('euc-kr');
-                        return;
-                    }
-                    document.getElementById('import-input').value = text; 
-                    window.processImport(); 
-                };
-                reader.readAsText(file, encoding);
+
+            const bytesToText = async () => {
+                const buf = await file.arrayBuffer();
+                const bytes = new Uint8Array(buf);
+                const decoders = [
+                    ['UTF-8', new TextDecoder('utf-8', {fatal:false})],
+                    ['EUC-KR', new TextDecoder('euc-kr', {fatal:false})]
+                ];
+                let best = '', bestScore = -Infinity, bestName = '';
+                for (const [name, decoder] of decoders) {
+                    const text = decoder.decode(bytes);
+                    const bad = (text.match(/�/g) || []).length;
+                    const korean = (text.match(/[가-힣]/g) || []).length;
+                    const markers = (text.match(/KIND_MEMO|CALENDAR_CIFALSE|>>>|;:/g) || []).length;
+                    const score = korean * 4 + markers * 20 - bad * 100;
+                    if (score > bestScore) { best = text; bestScore = score; bestName = name; }
+                }
+                document.getElementById('import-input').value = best;
+                window.processImport();
+                if (bestName === 'EUC-KR') showToast("한글 인코딩(EUC-KR)으로 읽었습니다.");
             };
-            tryRead('UTF-8');
+            bytesToText().catch(() => showToast("파일을 읽지 못했습니다."));
         };
 
         let tempItems = [];
@@ -532,88 +568,85 @@
             const input = document.getElementById('import-input').value;
             const previewDiv = document.getElementById('import-preview');
             const btnsDiv = document.getElementById('import-btns');
-            
             if(!input.trim()) { previewDiv.innerHTML = '<p class="text-red-500 p-2 text-center text-[15px] font-bold">내용이 비어있습니다.</p>'; btnsDiv.classList.add('hidden'); return; }
-            
+
             tempItems = [];
-            const lines = input.split('\n').map(l => l.trim());
-            let currentItem = null;
-            const currentYear = new Date().getFullYear();
+            const startYear = parseInt(document.getElementById('import-start-year')?.value || '1900', 10);
+            const startMonth = Math.min(12, Math.max(1, parseInt(document.getElementById('import-start-month')?.value || '1', 10)));
+            const cleanField = v => (!v || v === 'BLACK_NULL') ? '' : String(v).trim();
+            const makeId = (date, idx) => 'ci_' + date.replace(/-/g,'') + '_' + idx + '_' + Date.now();
 
-            for (let line of lines) {
-                if (!line) continue;
-                if (/^\d{2}:\d{2}:\d{2},\d{3}/.test(line)) continue;
-                if (/^\d+$/.test(line)) continue;
-                
-                let dMatchFull = line.match(/(20\d{2}|\d{2})[\s\-\.\/\_년]+(\d{1,2})[\s\-\.\/\_월]+(\d{1,2})[일\s]*/);
-                let dMatchFlat = line.match(/(?:^|\D)(20\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?:$|\D)/);
-                let dMatchShort = line.match(/(?:^|\[|\s|<|>|-)(\d{1,2})[\s\-\.\/\_월]+(\d{1,2})[일\s]*(?:$|\]|\s|<|>|-)/);
+            // 간단달력(CALENDAR_CIFALSE) 전용 백업 형식:
+            // 날짜 묶음은 <><YYYY_M_D>>> 로 시작하고, 같은 날 여러 일정은 탭으로 구분됨.
+            if (input.includes('KIND_MEMO') && input.includes('>>>')) {
+                const groups = input.split(/(?:<><)?(?=\d{4}_\d{1,2}_\d{1,2}>>>)/).filter(x => /^\d{4}_\d{1,2}_\d{1,2}>>>/.test(x.trim()));
+                let seq = 0;
+                for (const group of groups) {
+                    const sep = group.indexOf('>>>');
+                    if (sep < 0) continue;
+                    const key = group.slice(0, sep).trim();
+                    const dm = key.match(/^(\d{4})_(\d{1,2})_(\d{1,2})$/);
+                    if (!dm) continue;
+                    if (parseInt(dm[1], 10) < startYear || (parseInt(dm[1], 10) === startYear && parseInt(dm[2], 10) < startMonth)) continue;
+                    const date = `${dm[1]}-${String(dm[2]).padStart(2,'0')}-${String(dm[3]).padStart(2,'0')}`;
+                    const records = group.slice(sep + 3).split(/\t+/).map(x => x.trim()).filter(Boolean);
 
-                let dateFound = null;
-                let matchedStr = '';
+                    for (const record of records) {
+                        const fields = record.split(';:').map(cleanField);
+                        if (fields.length < 6 || fields[2] !== 'KIND_MEMO') continue;
 
-                if (dMatchFull) {
-                    let y = dMatchFull[1].length === 2 ? '20' + dMatchFull[1] : dMatchFull[1];
-                    dateFound = `${y}-${String(dMatchFull[2]).padStart(2,'0')}-${String(dMatchFull[3]).padStart(2,'0')}`;
-                    matchedStr = dMatchFull[0];
-                } else if (dMatchFlat) {
-                    dateFound = `${dMatchFlat[1]}-${dMatchFlat[2]}-${dMatchFlat[3]}`;
-                    matchedStr = dMatchFlat[0];
-                } else if (dMatchShort) {
-                    if(line.includes('월') || line.includes('.') || line.includes('/')){
-                         dateFound = `${currentYear}-${String(dMatchShort[1]).padStart(2,'0')}-${String(dMatchShort[2]).padStart(2,'0')}`;
-                         matchedStr = dMatchShort[0];
+                        const category = fields[3];
+                        let timePlace = fields[4];
+                        const memo = fields[5];
+                        let time = '';
+                        const tm = timePlace.match(/(?:^|\s)(\d{1,2})시(?:\s*(\d{1,2})분)?/);
+                        if (tm) {
+                            time = `${String(Math.min(23, parseInt(tm[1],10))).padStart(2,'0')}:${String(Math.min(59, parseInt(tm[2] || '0',10))).padStart(2,'0')}`;
+                            timePlace = timePlace.replace(tm[0], ' ').trim();
+                        }
+
+                        const noteParts = [];
+                        if (category) noteParts.push('[' + category + ']');
+                        if (timePlace) noteParts.push(timePlace);
+                        if (memo) noteParts.push(memo);
+                        const note = noteParts.join(' ').replace(/[\\|]n|[\\|]r[\\|]?n|[\\|]r/gi, ' ').replace(/\s+/g, ' ').trim();
+                        if (!note) continue;
+
+                        tempItems.push({
+                            id: makeId(date, seq++),
+                            date, time, note, amount: 0,
+                            supplier: '', people: '', departure: '', arrival: ''
+                        });
                     }
                 }
-
-                if (dateFound) {
-                    if (currentItem && currentItem.note.trim()) tempItems.push(currentItem);
-                    
-                    let cleanNote = line.replace(matchedStr, '');
-                    cleanNote = cleanNote.replace(/<[^>]*>/g, ' ').replace(/CALENDAR_CIFALSE/g, '').replace(/BLACK_NULL/g, '').replace(/;;;;/g, ' ').replace(/;;/g, ' ').trim();
-                    
-                    let timeVal = '10:00'; let amtVal = 0;
-                    
-                    let tMatch = cleanNote.match(/(\d{1,2})시\s*(\d{1,2})?분?/);
-                    if(tMatch) {
-                        timeVal = `${tMatch[1].padStart(2,'0')}:${tMatch[2] ? tMatch[2].padStart(2,'0') : '00'}`;
-                        cleanNote = cleanNote.replace(tMatch[0], '');
-                    } else {
-                        let tMatch2 = cleanNote.match(/(\d{2}):(\d{2})/);
-                        if (tMatch2) { timeVal = `${tMatch2[1]}:${tMatch2[2]}`; cleanNote = cleanNote.replace(tMatch2[0], ''); }
-                    }
-                    
-                    let amtMatch = cleanNote.match(/(\d{1,3}(,\d{3})+|\d{4,9})원/);
-                    if (amtMatch) { amtVal = parseInt(amtMatch[1].replace(/,/g,'')); cleanNote = cleanNote.replace(amtMatch[0], ''); }
-
-                    cleanNote = cleanNote.replace(/^[-\s[\]*]+/, '').trim();
-                    currentItem = { id: Date.now() + Math.random(), date: dateFound, time: timeVal, note: cleanNote, amount: amtVal, supplier: "미지정", people: 1 };
-                } else {
-                    if (currentItem) {
-                        let cleanNote = line.replace(/<[^>]*>/g, ' ').replace(/CALENDAR_CIFALSE/g, '').replace(/BLACK_NULL/g, '').replace(/;;;;/g, ' ').replace(/;;/g, ' ').trim();
-                        if(cleanNote) currentItem.note += (currentItem.note ? '\n' : '') + cleanNote;
-                    }
+            } else {
+                // 다른 텍스트 파일은 날짜가 명확한 줄만 안전하게 가져옴.
+                const lines = input.split(/\r?\n/);
+                let seq = 0;
+                for (const raw of lines) {
+                    const line = raw.trim();
+                    const m = line.match(/(20\d{2})[.\/_-](\d{1,2})[.\/_-](\d{1,2})\s*(.*)/);
+                    if (!m) continue;
+                    if (parseInt(m[1], 10) < startYear || (parseInt(m[1], 10) === startYear && parseInt(m[2], 10) < startMonth)) continue;
+                    const date = `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+                    let note = m[4].trim(), time = '';
+                    const tm = note.match(/(\d{1,2})시(?:\s*(\d{1,2})분)?/);
+                    if (tm) { time = `${String(parseInt(tm[1],10)).padStart(2,'0')}:${String(parseInt(tm[2]||'0',10)).padStart(2,'0')}`; note = note.replace(tm[0],'').trim(); }
+                    if(note) tempItems.push({id:makeId(date,seq++),date,time,note,amount:0,supplier:'',people:'',departure:'',arrival:''});
                 }
             }
-            if (currentItem && currentItem.note.trim()) tempItems.push(currentItem);
 
-            if (tempItems.length === 0 && input.length > 0) {
-                let fallbackNote = input.replace(/<[^>]*>/g, ' ').replace(/CALENDAR_CIFALSE/g, '').replace(/BLACK_NULL/g, '').replace(/;;;;/g, ' ').replace(/;;/g, ' ').substring(0, 3000);
-                tempItems.push({
-                    id: Date.now().toString(),
-                    date: getLocalToday(),
-                    time: '12:00',
-                    note: "[🚨자동 날짜인식 실패 - 원본 텍스트 임시 복구]\n\n" + fallbackNote,
-                    amount: 0, supplier: '미지정', people: 1
-                });
+            if (tempItems.length === 0) {
+                previewDiv.innerHTML = '<p class="text-red-500 p-3 text-center text-[15px] font-bold">간단달력 일정을 찾지 못했습니다. 원본 데이터는 저장하지 않았습니다.</p>';
+                btnsDiv.classList.add('hidden');
+                return;
             }
-
-            previewDiv.innerHTML = tempItems.map(it => `<div class="p-4 bg-sub rounded-xl text-[14px] flex flex-col mb-3 border border-custom"><div class="flex justify-between items-center mb-1.5 font-bold"><span style="color: var(--brand-color)">${it.date} ${smartTimeFormat(it.time)}</span>${it.amount !== 0 ? `<span class="text-orange-500">${formatKRW(it.amount)}원</span>`:''}</div><div class="text-important whitespace-pre-wrap leading-relaxed">${it.note || '내용 없음'}</div></div>`).join('');
-            btnsDiv.classList.remove('hidden'); 
-            showToast(`${tempItems.length}개의 데이터를 추출했습니다.`);
+            previewDiv.innerHTML = tempItems.map(it => `<div class="p-4 bg-sub rounded-xl text-[14px] flex flex-col mb-3 border border-custom"><div class="font-bold mb-1.5" style="color:var(--brand-color)">${it.date} ${smartTimeFormat(it.time)}</div><div class="text-important whitespace-pre-wrap leading-relaxed">${it.note}</div></div>`).join('');
+            btnsDiv.classList.remove('hidden');
+            showToast(`${tempItems.length}개의 간단달력 일정을 정확히 분리했습니다.`);
         };
 
-        window.saveImported = () => { db = [...db, ...tempItems]; sync(); document.getElementById('import-modal').remove(); showToast(`✅ 성공적으로 복원되었습니다!`); navTo('list'); };
+        window.saveImported = () => { const existing = new Set(db.map(x => `${x.date}|${x.time||''}|${x.note||''}`)); const fresh = tempItems.filter(x => !existing.has(`${x.date}|${x.time||''}|${x.note||''}`)); db = [...db, ...fresh]; sync(); document.getElementById('import-modal').remove(); showToast(`✅ ${fresh.length}개 복원 완료${fresh.length < tempItems.length ? ` / 중복 ${tempItems.length-fresh.length}개 제외` : ''}`); navTo('list'); };
 
         window.saveDraft = () => {
             const fDateEl = document.getElementById('f-date');
@@ -628,9 +661,29 @@
                 people: document.getElementById('f-people')?.value || '',
                 supplier: document.getElementById('f-supplier')?.value || '',
                 amount: document.getElementById('f-amount-display')?.value || '',
-                note: document.getElementById('f-note')?.value || ''
+                note: document.getElementById('f-note')?.value || '',
+                color: document.getElementById('f-color')?.value || ''
             };
             localStorage.setItem('logrit_draft_data', JSON.stringify(draft));
+        };
+
+        window.swapRoute = () => {
+            const departure = document.getElementById('f-departure');
+            const arrival = document.getElementById('f-arrival');
+            if (!departure || !arrival) return;
+            const temp = departure.value;
+            departure.value = arrival.value;
+            arrival.value = temp;
+            window.saveDraft();
+        };
+
+        window.selectRecordColor = (color, save = true) => {
+            const el = document.getElementById('f-color'); if(el) el.value = color || '';
+            document.querySelectorAll('.record-color-btn').forEach(b => {
+                b.style.outline = b.dataset.color === (color || '') ? '3px solid var(--text-bold)' : 'none';
+                b.style.outlineOffset = '2px';
+            });
+            if(save) window.saveDraft();
         };
 
         window.closeEntryModal = () => {
@@ -656,10 +709,11 @@
                     <button type="button" onclick="closeEntryModal()" class="p-2.5 btn-close rounded-full active:scale-95"><i data-lucide="x" class="w-6 h-6"></i></button>
                 </div>
                 <form id="record-form" onsubmit="window.saveRecord(event)" oninput="window.saveDraft()">
-                    <div class="space-y-4">
+                    <div class="space-y-2">
                         <input type="date" id="f-date" class="input-field" required>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="text" id="f-departure" placeholder="출발지 Departure" class="input-field"> 
+                        <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                            <input type="text" id="f-departure" placeholder="출발지 Departure" class="input-field">
+                            <button type="button" onclick="window.swapRoute()" class="w-10 h-10 rounded-xl bg-sub border border-custom flex items-center justify-center active:scale-90 transition-transform cursor-pointer" aria-label="출발지 도착지 바꾸기"><i data-lucide="arrow-left-right" class="w-5 h-5"></i></button>
                             <input type="text" id="f-arrival" placeholder="도착지 Arrival" class="input-field">
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -673,7 +727,13 @@
                             <span class="absolute right-5 top-1/2 -translate-y-1/2 opacity-60 font-bold text-[16px] text-dim">원</span>
                         </div>
                         
-                        <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]"></textarea>
+                        <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
+                        <div class="flex items-center gap-2 px-1 pt-1">
+                            <span class="text-[12px] font-bold text-dim mr-1">일정 색상</span>
+                            <button type="button" data-color="#ef4444" onclick="window.selectRecordColor('#ef4444')" class="record-color-btn w-7 h-7 rounded-full border-2 border-transparent active:scale-90" style="background:#ef4444"></button><button type="button" data-color="#f97316" onclick="window.selectRecordColor('#f97316')" class="record-color-btn w-7 h-7 rounded-full border-2 border-transparent active:scale-90" style="background:#f97316"></button><button type="button" data-color="#eab308" onclick="window.selectRecordColor('#eab308')" class="record-color-btn w-7 h-7 rounded-full border-2 border-transparent active:scale-90" style="background:#eab308"></button><button type="button" data-color="#22c55e" onclick="window.selectRecordColor('#22c55e')" class="record-color-btn w-7 h-7 rounded-full border-2 border-transparent active:scale-90" style="background:#22c55e"></button><button type="button" data-color="#3b82f6" onclick="window.selectRecordColor('#3b82f6')" class="record-color-btn w-7 h-7 rounded-full border-2 border-transparent active:scale-90" style="background:#3b82f6"></button><button type="button" data-color="#8b5cf6" onclick="window.selectRecordColor('#8b5cf6')" class="record-color-btn w-7 h-7 rounded-full border-2 border-transparent active:scale-90" style="background:#8b5cf6"></button><button type="button" data-color="#ec4899" onclick="window.selectRecordColor('#ec4899')" class="record-color-btn w-7 h-7 rounded-full border-2 border-transparent active:scale-90" style="background:#ec4899"></button>
+                            <button type="button" data-color="" onclick="window.selectRecordColor('')" class="record-color-btn w-7 h-7 rounded-full border-2 border-custom bg-sub text-[11px] font-bold text-dim">×</button>
+                            <input type="hidden" id="f-color">
+                        </div>
                     </div>
                     <div id="form-actions" class="flex gap-3 mt-8">
                         ${id ? `<button type="button" onclick="window.deleteItemDirect('${id}')" id="delete-btn" class="flex-1 btn-del py-4.5 rounded-2xl font-bold text-center text-[15px]">삭제 Del</button>` : ''}
@@ -685,6 +745,9 @@
             document.body.insertAdjacentHTML('beforeend', html); 
             
             document.getElementById('f-date').value = defaultDate;
+            const initialColor = draftData ? (draftData.color || '') : (it ? (it.color || '') : '');
+            document.getElementById('f-color').value = initialColor;
+            window.selectRecordColor(initialColor, false);
             document.getElementById('f-departure').value = draftData ? draftData.departure : (it ? it.departure || '' : '');
             document.getElementById('f-arrival').value = draftData ? draftData.arrival : (it ? it.arrival || '' : '');
             document.getElementById('f-time').value = draftData ? draftData.time : (it ? it.time || '' : '');
