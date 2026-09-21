@@ -780,9 +780,22 @@
 
         const RECORD_COLOR_LABELS_KEY = 'logrit_record_color_labels_v1';
         const RECORD_COLORS = ['#e56f73','#f28a4b','#dfba36','#58b978','#5d9fdb','#9279d3','#d46fa4','#b85f4f','#83a94f','#42aaa2','#3f75bd','#7652ad','#c04f82','#747b86'];
+        const PREVIOUS_RECORD_COLORS = ['#e57373','#ed8a54','#d8b83f','#63b982','#6d9ed6','#9881d2','#d979aa','#b86b5f','#7f9f62','#5fa9a3','#5f7fb8','#806aa8','#b56f91','#8b8f98'];
 
         window.getRecordColorLabels = () => {
-            try { return JSON.parse(localStorage.getItem(RECORD_COLOR_LABELS_KEY) || '{}') || {}; }
+            try {
+                const labels = JSON.parse(localStorage.getItem(RECORD_COLOR_LABELS_KEY) || '{}') || {};
+                let migrated = false;
+                PREVIOUS_RECORD_COLORS.forEach((oldColor, i) => {
+                    const newColor = RECORD_COLORS[i];
+                    if (labels[oldColor] && !labels[newColor]) {
+                        labels[newColor] = labels[oldColor];
+                        migrated = true;
+                    }
+                });
+                if (migrated) localStorage.setItem(RECORD_COLOR_LABELS_KEY, JSON.stringify(labels));
+                return labels;
+            }
             catch(e) { return {}; }
         };
 
