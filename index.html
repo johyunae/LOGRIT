@@ -66,14 +66,14 @@
         .sticky-sub { position: sticky; top: 56px; z-index: 45; background-color: var(--bg-color); width: 100%; border-bottom: 1px solid var(--calendar-border); transition: 0.3s; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); width: 100vw; border-top: 1px solid var(--calendar-border); }
         
-        .memo-cell { min-height: 115px; border-right: 0.5px solid var(--calendar-border); border-bottom: 0.5px solid var(--calendar-border); position: relative; cursor: pointer; display: flex; flex-direction: column; overflow: hidden; }
-        .memo-cell.is-selected { box-shadow: inset 0 0 0 2.5px var(--brand-color); z-index: 10; background-color: var(--sub-bg); }
+        .memo-cell { min-height: 88px; padding-top: 2px; border-right: 0.5px solid var(--calendar-border); border-bottom: 0.5px solid var(--calendar-border); position: relative; cursor: pointer; display: flex; flex-direction: column; overflow: hidden; }
+        .memo-cell.is-selected { box-shadow: inset 0 0 0 2px var(--brand-color); z-index: 10; background-color: var(--sub-bg); }
         .memo-cell:nth-child(7n) { border-right: none; }
         
-        .date-num { font-size: 16px; font-weight: 800; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; margin: 2px auto 0; transition: 0.2s; }
-        .is-today .date-num { background: var(--brand-color); color: white; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .holiday-text { font-size: 9.5px; font-weight: 800; color: var(--sun-color); text-align: center; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; padding: 0 2px; line-height: 1.1; letter-spacing: -0.05em; }
-        .memo-strip { font-size: 11.5px; padding: 2px 4px; color: var(--text-main); white-space: nowrap; overflow: hidden; font-weight: 600; letter-spacing: -0.05em; border-radius: 4px; margin-bottom: 1px; }
+        .date-num { font-size: 17px; font-weight: 500; width: 100%; height: 24px; display: flex; align-items: center; justify-content: flex-start; padding-left: 5px; margin: 0; transition: 0.2s; line-height: 1; }
+        .is-today .date-num { background: transparent; color: var(--brand-color); border-radius: 0; box-shadow: none; font-weight: 900; }
+        .holiday-text { font-size: 8.5px; font-weight: 700; color: var(--sun-color); text-align: left; margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; padding: 0 2px; line-height: 1.1; letter-spacing: -0.05em; }
+        .memo-strip { font-size: 10px; padding: 1px 3px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; letter-spacing: -0.07em; border-radius: 2px; margin-bottom: 1px; line-height: 1.25; }
         .sun { color: var(--sun-color) !important; } .sat { color: var(--sat-color) !important; }
 
         .input-field { width: 100%; background-color: var(--input-bg); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 16px; color: var(--text-bold); outline: none; font-size: 16px; font-weight: bold; transition: border-color 0.2s; }
@@ -387,20 +387,20 @@
                     if (holName) dCls = 'sun'; 
                     const holHtml = holName ? `<div class="holiday-text">${holName}</div>` : '';
                     gridHtml += `<div onclick="handleDateTouch('${dStr}');" class="memo-cell ${isT?'is-today':''} ${selectedDate===dStr?'is-selected':''}">
-                        <div class="flex flex-col items-center justify-start shrink-0 w-full min-h-[36px]"><div class="date-num ${dCls}">${d}</div>${holHtml}</div>
-                        <div class="flex-1 overflow-hidden px-0.5 mt-0.5">${items.map(it => `<div class="memo-strip" style="${it.color ? `background:${it.color};color:white;` : ''}">${smartTimeFormat(it.time)} ${cleanText(it.supplier, it.note.substring(0,5))}</div>`).join('')}</div>
+                        <div class="flex flex-col items-start justify-start shrink-0 w-full min-h-[26px]"><div class="date-num ${dCls}">${d}</div>${holHtml}</div>
+                        <div class="flex-1 overflow-hidden px-0.5">${items.map(it => `<div class="memo-strip" style="${it.color ? `background:${it.color};color:white;` : ''}">${smartTimeFormat(it.time)} ${cleanText(it.supplier, it.note.substring(0,5))}</div>`).join('')}</div>
                     </div>`;
                 }
                 
                 root.innerHTML = `
                     <div class="animate-in fade-in">
-                        <div class="sticky-sub px-5 pt-2 pb-4 shadow-sm">
-                            <div class="flex items-baseline gap-2 mb-1">
-                                <h2 class="text-3xl font-black text-important">${m+1}</h2>
-                                <span class="text-lg font-medium italic text-dim opacity-60 tracking-wide" style="font-family: Georgia, serif;">${monthNamesEn[m]} ${y}</span>
+                        <div class="sticky-sub px-2 pt-2 pb-2 shadow-sm">
+                            <div class="flex items-center justify-between px-2 mb-2">
+                                <button onclick="moveMonth(-1)" class="w-9 h-9 flex items-center justify-center text-dim active:scale-90 cursor-pointer" aria-label="이전 달"><i data-lucide="chevron-left" class="w-7 h-7"></i></button>
+                                <h2 class="text-[25px] font-bold text-important tracking-tight">${y}년 ${m+1}월</h2>
+                                <button onclick="moveMonth(1)" class="w-9 h-9 flex items-center justify-center text-dim active:scale-90 cursor-pointer" aria-label="다음 달"><i data-lucide="chevron-right" class="w-7 h-7"></i></button>
                             </div>
-                            
-                            <div class="grid grid-cols-7 text-center text-[12px] font-extrabold text-dim mt-4"><div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div></div>
+                            <div class="grid grid-cols-7 text-center text-[10px] font-bold text-dim"><div class="sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="sat">토</div></div>
                         </div>
                         <div class="calendar-grid">${gridHtml}</div>
                         <div class="px-5 mt-8"><div class="grid grid-cols-[1fr_auto] gap-2 items-stretch"><input type="text" inputmode="numeric" placeholder="년.월 검색  예: 2026.9" class="input-field !py-2.5 text-[14px] min-w-0" onkeydown="window.handleMonthSearchKey(event)"><button onclick="window.searchCalendarMonth(this.previousElementSibling.value)" class="px-4 whitespace-nowrap rounded-xl bg-sub border border-custom font-bold text-[13px] cursor-pointer">검색</button></div></div>
