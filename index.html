@@ -301,7 +301,13 @@
             const opening = selectedDate !== dateStr;
             selectedDate = opening ? dateStr : null;
             render();
-            if (opening) window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (opening) {
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
+                });
+            }
         };
 
         window.ontouchstart = (e) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; };
