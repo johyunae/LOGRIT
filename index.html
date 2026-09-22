@@ -301,19 +301,12 @@
 
         window.goToToday = () => {
             const today = getLocalToday();
-            calContext = new Date();
-            selectedDate = today;
+            const [ty, tm] = today.split('-').map(Number);
+            calContext = new Date(ty, tm - 1, 1);
             currentNav = 'e_cal';
+            selectedDate = null;
             render();
-            requestAnimationFrame(() => {
-                const selected = document.querySelector('.memo-cell.is-selected');
-                const fixedHeader = document.querySelector('.calendar-fixed-sub');
-                if (selected) {
-                    const fixedBottom = fixedHeader ? fixedHeader.getBoundingClientRect().bottom : 144;
-                    const targetTop = Math.max(0, window.scrollY + selected.getBoundingClientRect().top - fixedBottom - 2);
-                    window.scrollTo({ top: targetTop, left: 0, behavior: 'smooth' });
-                }
-            });
+            requestAnimationFrame(() => window.handleDateTouch(today));
         };
         window.openSettings = () => { currentNav = 'settings'; render(); };
         window.handleDateTouch = (dateStr) => {
