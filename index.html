@@ -77,9 +77,10 @@
         .sun { color: var(--sun-color) !important; } .sat { color: var(--sat-color) !important; }
         .daily-inline { grid-column: 1 / -1; background: var(--card-bg); border-bottom: 1px solid var(--calendar-border); padding: 10px 14px 12px; min-height: 86px; }
         .daily-inline-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; font-size:13px; font-weight:900; color:var(--text-bold); }
-        .daily-inline-item { display:flex; align-items:flex-start; gap:8px; padding:7px 2px; border-top:1px solid var(--border-color); color:var(--text-bold); cursor:pointer; }
+        .daily-inline-item { display:flex; align-items:flex-start; gap:8px; padding:8px 2px; border-top:1px solid var(--border-color); color:var(--text-bold); cursor:pointer; }
         .daily-inline-time { min-width:52px; font-size:14px; font-weight:900; color:var(--brand-color); }
-        .daily-inline-text { min-width:0; flex:1; font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .daily-inline-text { min-width:0; flex:1; font-size:14px; font-weight:700; white-space:normal; overflow:visible; line-height:1.4; word-break:break-word; }
+        .daily-inline-detail { display:block; margin-top:2px; font-size:12px; font-weight:500; color:var(--text-main); white-space:normal; line-height:1.35; }
         .daily-inline-empty { padding:12px 2px 8px; text-align:center; font-size:13px; font-weight:700; color:var(--text-main); }
 
         .input-field { width: 100%; background-color: var(--input-bg); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 16px; color: var(--text-bold); outline: none; font-size: 16px; font-weight: bold; transition: border-color 0.2s; }
@@ -406,7 +407,11 @@
                         const dow = new Date(y, m, selectedDay).getDay();
                         gridHtml += `<div class="daily-inline">
                             <div class="daily-inline-head"><span>${m+1}월 ${selectedDay}일 (${dayNames[dow]})</span><button onclick="event.stopPropagation(); openEntryModal(null, selectedDate)" class="px-3 py-1.5 rounded-lg bg-brand text-white text-[12px] font-black">+ 일정 추가</button></div>
-                            ${selectedItems.length ? selectedItems.map(it => `<div class="daily-inline-item" onclick="event.stopPropagation(); openEntryModal('${it.id}')"><span class="daily-inline-time">${smartTimeFormat(it.time) || '시간없음'}</span><span class="daily-inline-text">${cleanText(it.supplier, cleanText(it.note, '일정'))}</span></div>`).join('') : '<div class="daily-inline-empty">등록된 일정이 없습니다.</div>'}
+                            ${selectedItems.length ? selectedItems.map(it => {
+                                const title = cleanText(it.note, cleanText(it.supplier, '일정'));
+                                const details = [cleanText(it.supplier), cleanText(it.departure), cleanText(it.arrival)].filter(Boolean).join(' · ');
+                                return `<div class="daily-inline-item" onclick="event.stopPropagation(); openEntryModal('${it.id}')"><span class="daily-inline-time">${smartTimeFormat(it.time) || '시간없음'}</span><span class="daily-inline-text">${title}${details ? `<span class="daily-inline-detail">${details}</span>` : ''}</span></div>`;
+                            }).join('') : '<div class="daily-inline-empty">등록된 일정이 없습니다.</div>'}
                         </div>`;
                     }
                 }
