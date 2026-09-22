@@ -64,7 +64,7 @@
 
         .fixed-header { position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 100; background-color: var(--nav-bg); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--border-color); transition: 0.3s; }
         .sticky-sub { position: sticky; top: 56px; z-index: 45; background-color: var(--bg-color); width: 100%; border-bottom: 1px solid var(--calendar-border); transition: background-color 0.3s, color 0.3s; margin-top: -1px; }
-        .calendar-fixed-sub { position: sticky; top: 56px; z-index: 55; box-sizing: border-box; background-color: var(--bg-color); border-bottom: 1px solid var(--calendar-border); padding-top: 14px !important; padding-bottom: 0 !important; margin-top: 0 !important; }
+        .calendar-fixed-sub { position: sticky; top: 56px; z-index: 55; box-sizing: border-box; background-color: var(--bg-color); border-bottom: 1px solid var(--calendar-border); padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; }
         .calendar-fixed-grid { margin-top: 0; }
         .calendar-grid { align-content: start; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); width: 100vw; border-top: 1px solid var(--calendar-border); }
@@ -444,7 +444,7 @@
                 root.innerHTML = `
                     <div class="animate-in fade-in">
                         <div class="sticky-sub calendar-fixed-sub px-5 shadow-sm">
-                            <div class="flex items-center justify-between gap-2 mb-1">
+                            <div class="flex items-center justify-between gap-2 mb-1" style="padding-top:0;">
                                 <div class="flex items-baseline gap-2"><h2 class="text-3xl font-black text-important">${m+1}</h2><span class="text-lg font-medium italic text-dim opacity-60 tracking-wide" style="font-family: Georgia, serif;">${monthNamesEn[m]} ${y}</span></div>
                                 <div class="flex gap-0.5 bg-sub px-1 py-0.5 rounded-lg border border-custom"><button onclick="moveMonth(-1)" class="p-1.5 active:scale-90 text-important cursor-pointer" aria-label="이전 달"><i data-lucide="chevron-left" class="w-4 h-4"></i></button><button onclick="moveMonth(1)" class="p-1.5 active:scale-90 text-important cursor-pointer" aria-label="다음 달"><i data-lucide="chevron-right" class="w-4 h-4"></i></button></div>
                             </div>
