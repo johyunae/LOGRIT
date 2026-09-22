@@ -66,6 +66,8 @@
         .sticky-sub { position: sticky; top: 56px; z-index: 45; background-color: var(--bg-color); width: 100%; border-bottom: 1px solid var(--calendar-border); transition: background-color 0.3s, color 0.3s; margin-top: -1px; }
         .calendar-fixed-sub { position: fixed; top: 56px; left: 0; right: 0; z-index: 55; height: 112px; box-sizing: border-box; background-color: var(--bg-color); border-bottom: 1px solid var(--calendar-border); padding-top: 22px !important; padding-bottom: 12px !important; margin-top: 0 !important; }
         .calendar-fixed-grid { margin-top: 112px; }
+        /* 선택한 날짜 상세가 열려도 달력 자체는 자연스럽게 위/아래 스크롤되도록 유지 */
+        .calendar-grid { align-content: start; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); width: 100vw; border-top: 1px solid var(--calendar-border); }
         
         .memo-cell { min-height: 115px; border-right: 0.5px solid var(--calendar-border); border-bottom: 0.5px solid var(--calendar-border); position: relative; cursor: pointer; display: flex; flex-direction: column; overflow: hidden; }
@@ -305,9 +307,12 @@
             render();
             if (opening) {
                 requestAnimationFrame(() => {
-                    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-                    document.documentElement.scrollTop = 0;
-                    document.body.scrollTop = 0;
+                    const selected = document.querySelector('.memo-cell.is-selected');
+                    if (selected) {
+                        const fixedBottom = 56 + 112;
+                        const targetTop = Math.max(0, window.scrollY + selected.getBoundingClientRect().top - fixedBottom - 2);
+                        window.scrollTo({ top: targetTop, left: 0, behavior: 'auto' });
+                    }
                 });
             }
         };
