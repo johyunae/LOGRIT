@@ -64,7 +64,7 @@
 
         .fixed-header { position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 100; background-color: var(--nav-bg); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--border-color); transition: 0.3s; }
         .sticky-sub { position: sticky; top: 56px; z-index: 45; background-color: var(--bg-color); width: 100%; border-bottom: 1px solid var(--calendar-border); transition: background-color 0.3s, color 0.3s; margin-top: -1px; }
-        .calendar-fixed-sub { position: sticky; top: 56px; z-index: 55; box-sizing: border-box; background-color: var(--bg-color); border-bottom: 1px solid var(--calendar-border); padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; height: 124px; display: flex; flex-direction: column; justify-content: space-between; }
+        .calendar-fixed-sub { position: sticky; top: 56px; z-index: 55; box-sizing: border-box; background-color: var(--bg-color); border-bottom: 1px solid var(--calendar-border); padding: 0 20px !important; margin: 0 !important; height: 102px; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; }
         .calendar-fixed-grid { margin-top: 0; }
         .calendar-grid { align-content: start; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); width: 100vw; border-top: 1px solid var(--calendar-border); }
@@ -444,13 +444,13 @@
                 
                 root.innerHTML = `
                     <div class="animate-in fade-in">
-                        <div class="sticky-sub calendar-fixed-sub px-5 shadow-sm">
-                            <div class="flex items-center justify-between gap-2 mb-1" style="padding-top:8px;">
+                        <div class="sticky-sub calendar-fixed-sub shadow-sm">
+                            <div class="flex items-center justify-between gap-2" style="padding-top:4px;">
                                 <div class="flex items-baseline gap-2"><h2 class="text-3xl font-black text-important">${m+1}</h2><span class="text-lg font-medium italic text-dim opacity-60 tracking-wide" style="font-family: Georgia, serif;">${monthNamesEn[m]} ${y}</span></div>
                                 <div class="flex gap-0.5 bg-sub px-1 py-0.5 rounded-lg border border-custom"><button onclick="moveMonth(-1)" class="p-1.5 active:scale-90 text-important cursor-pointer" aria-label="이전 달"><i data-lucide="chevron-left" class="w-4 h-4"></i></button><button onclick="moveMonth(1)" class="p-1.5 active:scale-90 text-important cursor-pointer" aria-label="다음 달"><i data-lucide="chevron-right" class="w-4 h-4"></i></button></div>
                             </div>
                             
-                            <div class="grid grid-cols-7 text-center text-[12px] font-extrabold text-dim" style="padding-bottom:8px;"><div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div></div>
+                            <div class="grid grid-cols-7 text-center text-[12px] font-extrabold text-dim" style="margin-top:10px; padding-bottom:4px;"><div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div></div>
                         </div>
                         <div class="calendar-grid calendar-fixed-grid">${gridHtml}</div>
                         <div class="px-5 mt-6 mb-0"><div class="grid grid-cols-[1fr_auto] gap-2 items-stretch"><input type="text" inputmode="numeric" placeholder="년.월 검색  예: 2026.9" class="input-field !py-2.5 text-[14px] min-w-0" onkeydown="window.handleMonthSearchKey(event)"><button onclick="window.searchCalendarMonth(this.previousElementSibling.value)" class="px-4 whitespace-nowrap rounded-xl bg-sub border border-custom font-bold text-[13px] cursor-pointer">검색</button></div></div><div style="height:1px;overflow:hidden"></div>
