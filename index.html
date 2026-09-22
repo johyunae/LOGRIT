@@ -63,7 +63,7 @@
         .border-custom { border-color: var(--border-color); }
 
         .fixed-header { position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 100; background-color: var(--nav-bg); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--border-color); transition: 0.3s; }
-        .sticky-sub { position: sticky; top: 56px; z-index: 45; background-color: var(--bg-color); width: 100%; border-bottom: 1px solid var(--calendar-border); transition: 0.3s; }
+        .sticky-sub { position: relative; z-index: 45; background-color: var(--bg-color); width: 100%; border-bottom: 1px solid var(--calendar-border); transition: background-color 0.3s, color 0.3s; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); width: 100vw; border-top: 1px solid var(--calendar-border); }
         
         .memo-cell { min-height: 115px; border-right: 0.5px solid var(--calendar-border); border-bottom: 0.5px solid var(--calendar-border); position: relative; cursor: pointer; display: flex; flex-direction: column; overflow: hidden; }
