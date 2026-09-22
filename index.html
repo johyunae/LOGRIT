@@ -386,7 +386,8 @@
                 let gridHtml = '';
                 const selectedDay = selectedDate && selectedDate.startsWith(`${y}-${String(m+1).padStart(2,'0')}-`) ? parseInt(selectedDate.slice(-2), 10) : null;
                 const selectedWeek = selectedDay ? Math.floor((start + selectedDay - 1) / 7) : -1;
-                const weekOrder = (weekIndex) => selectedDay ? (weekIndex === selectedWeek ? 0 : weekIndex + 2) : 0;
+                const totalWeeks = Math.ceil((start + last) / 7);
+                const weekOrder = (weekIndex) => selectedDay ? (weekIndex === selectedWeek ? 0 : (weekIndex > selectedWeek ? weekIndex - selectedWeek + 1 : totalWeeks - selectedWeek + weekIndex + 1)) : 0;
                 for(let i=0; i<start; i++) gridHtml += `<div class="memo-cell opacity-10" style="${selectedDay ? `order:${weekOrder(0)}` : ''}"></div>`;
                 for(let d=1; d<=last; d++) {
                     const dStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
