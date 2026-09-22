@@ -118,7 +118,7 @@
 
     </style>
 </head>
-<body class="pb-40 no-scrollbar">
+<body class="no-scrollbar">
 
     <div class="fixed-header">
         <div class="flex items-center gap-2">
@@ -440,7 +440,7 @@
                             <div class="grid grid-cols-7 text-center text-[12px] font-extrabold text-dim mt-4"><div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div></div>
                         </div>
                         <div class="calendar-grid">${gridHtml}</div>
-                        <div class="px-5 mt-6 mb-0"><div class="grid grid-cols-[1fr_auto] gap-2 items-stretch"><input type="text" inputmode="numeric" placeholder="년.월 검색  예: 2026.9" class="input-field !py-2.5 text-[14px] min-w-0" onkeydown="window.handleMonthSearchKey(event)"><button onclick="window.searchCalendarMonth(this.previousElementSibling.value)" class="px-4 whitespace-nowrap rounded-xl bg-sub border border-custom font-bold text-[13px] cursor-pointer">검색</button></div></div>
+                        <div class="px-5 mt-6 mb-0"><div class="grid grid-cols-[1fr_auto] gap-2 items-stretch"><input type="text" inputmode="numeric" placeholder="년.월 검색  예: 2026.9" class="input-field !py-2.5 text-[14px] min-w-0" onkeydown="window.handleMonthSearchKey(event)"><button onclick="window.searchCalendarMonth(this.previousElementSibling.value)" class="px-4 whitespace-nowrap rounded-xl bg-sub border border-custom font-bold text-[13px] cursor-pointer">검색</button></div></div><div style="height:1px;overflow:hidden"></div>
                     </div>`;
             } else if (currentNav === 'list') {
                 const monthInfo = filterMonth ? `<div class="mt-3 px-1 font-bold text-[13px] uppercase flex justify-between items-center" style="color: var(--brand-color)"><span>현재 ${parseInt(filterMonth.split('-')[1])}월 내역만 보는 중</span><button onclick="navTo('list')" class="underline underline-offset-2 active:opacity-50 cursor-pointer">전체 보기</button></div>` : "";
