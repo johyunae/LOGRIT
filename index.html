@@ -296,7 +296,12 @@
 
         window.goToToday = () => { const today = getLocalToday(); calContext = new Date(); selectedDate = today; currentNav = 'e_cal'; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
         window.openSettings = () => { currentNav = 'settings'; render(); };
-        window.handleDateTouch = (dateStr) => { selectedDate = (selectedDate === dateStr ? null : dateStr); render(); };
+        window.handleDateTouch = (dateStr) => {
+            const opening = selectedDate !== dateStr;
+            selectedDate = opening ? dateStr : null;
+            render();
+            if (opening) window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
 
         window.ontouchstart = (e) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; };
         window.ontouchend = (e) => { 
