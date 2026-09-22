@@ -423,7 +423,7 @@
                     const weekIndex = Math.floor((start + d - 1) / 7);
                     gridHtml += `<div onclick="handleDateTouch('${dStr}');" class="memo-cell ${isT?'is-today':''} ${selectedDate===dStr?'is-selected':''}" style="${selectedDay ? `order:${weekOrder(weekIndex)}` : ''}">
                         <div class="flex flex-col items-center justify-start shrink-0 w-full min-h-[36px]"><div class="date-num ${dCls}">${d}</div>${holHtml}</div>
-                        <div class="flex-1 overflow-hidden px-0.5 mt-0.5">${items.map(it => `<div class="memo-strip" style="${it.color ? `background:${it.color};` : ''}">${smartTimeFormat(it.time)} ${cleanText(it.supplier, it.note.substring(0,5))}</div>`).join('')}</div>
+                        <div class="flex-1 overflow-hidden px-0.5 mt-0.5">${items.map(it => `<div class="memo-strip" style="${it.color ? `background:color-mix(in srgb, ${it.color} 28%, transparent);` : ''}">${smartTimeFormat(it.time)} ${cleanText(it.supplier, it.note.substring(0,5))}</div>`).join('')}</div>
                     </div>`;
                     const isWeekEnd = ((start + d) % 7 === 0) || d === last;
                     if (selectedDay && weekIndex === selectedWeek && isWeekEnd) {
