@@ -438,7 +438,7 @@
                         const dayNames = ['일','월','화','수','목','금','토'];
                         const dow = new Date(y, m, selectedDay).getDay();
                         gridHtml += `<div class="daily-inline">
-                            <div class="daily-inline-head"><span>${m+1}월 ${selectedDay}일 (${dayNames[dow]})</span><button onclick="event.stopPropagation(); openEntryModal(null, selectedDate)" class="px-3 py-1.5 rounded-lg bg-brand text-white text-[12px] font-black">+ 일정 추가</button></div>
+                            <div class="daily-inline-head"><span>${m+1}월 ${selectedDay}일 (${dayNames[dow]})</span></div>
                             ${selectedItems.length ? selectedItems.map(it => {
                                 const title = cleanText(it.note, cleanText(it.supplier, '일정'));
                                 const details = [cleanText(it.supplier), cleanText(it.departure), cleanText(it.arrival)].filter(Boolean).join(' · ');
