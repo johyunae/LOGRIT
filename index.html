@@ -476,8 +476,8 @@
                 let running = 0;
                 root.innerHTML = `
                     <div class="animate-in fade-in text-left text-important">
-                        <div class="px-5 py-5 border-b border-custom shadow-sm bg-primary">
-                            <div class="flex items-center justify-between mb-3">
+                        <div class="px-5 pb-5 border-b border-custom shadow-sm bg-primary">
+                            <div class="sticky-sub bg-primary flex items-center justify-between mb-3" style="top:56px;z-index:25;padding-top:12px;padding-bottom:10px;margin-left:-20px;margin-right:-20px;padding-left:20px;padding-right:20px;">
                                 <button onclick="moveMonth(-1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-sub active:scale-90 transition-transform cursor-pointer" aria-label="이전 달"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
                                 <div class="text-center whitespace-nowrap"><span class="text-2xl font-black text-important">${calContext.getMonth()+1}</span><span class="text-[15px] font-medium italic text-dim opacity-60 tracking-wide ml-2" style="font-family: Georgia, serif;">${monthNamesEn[calContext.getMonth()]} ${calContext.getFullYear()}</span></div>
                                 <button onclick="moveMonth(1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-sub active:scale-90 transition-transform cursor-pointer" aria-label="다음 달"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
@@ -488,7 +488,7 @@
                                 <b class="text-[18px] font-black ${yearTotal < 0 ? 'text-red-400' : 'text-important'}">${formatKRW(yearTotal)}원</b>
                             </div>
                             <p class="text-[13px] font-bold uppercase tracking-widest mt-1 text-dim">${mPrefix} 통계 / ${mData.length}건의 기록</p>
-                            <div class="flex gap-2 mt-4"><input type="text" inputmode="numeric" placeholder="년.월 검색  예: 2026.9" class="input-field !py-2.5 text-[14px]" onkeydown="window.handleMonthSearchKey(event)"><button onclick="window.searchCalendarMonth(this.previousElementSibling.value)" class="px-4 rounded-xl bg-sub border border-custom font-bold text-[13px] cursor-pointer">검색</button></div>
+                            <div class="grid grid-cols-[minmax(0,1fr)_64px] gap-2 mt-4 items-stretch"><input type="text" inputmode="numeric" placeholder="년.월 검색  예: 2026.9" class="input-field !py-2.5 text-[14px] min-w-0" onkeydown="window.handleMonthSearchKey(event)"><button onclick="window.searchCalendarMonth(this.previousElementSibling.value)" class="rounded-xl bg-sub border border-custom font-bold text-[13px] cursor-pointer" style="width:64px;min-width:64px;white-space:nowrap;word-break:keep-all;writing-mode:horizontal-tb;">검색</button></div>
                         </div>
                         <div class="px-5 pt-8">
                             <h3 class="text-[13px] font-bold mb-4 px-1 tracking-widest text-dim">거래처별 합계 (터치 시 해당 월 기록)</h3>
