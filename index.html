@@ -381,14 +381,14 @@
                 }
             }
             return `
-                <div onclick="openEntryModal('${item.id}')" class="bg-card p-5 rounded-[1.5rem] mb-3 border border-custom shadow-md text-left active:opacity-60 transition-all cursor-pointer" style="${item.color ? `border-left:6px solid ${item.color}` : ''}">
-                    <div class="flex justify-between items-center border-b border-custom pb-3 mb-3">
+                <div onclick="openEntryModal('${item.id}')" class="bg-card p-4 rounded-[1.5rem] mb-2 border border-custom shadow-md text-left active:opacity-60 transition-all cursor-pointer" style="${item.color ? `border-left:6px solid ${item.color}` : ''}">
+                    <div class="flex justify-between items-center border-b border-custom pb-2 mb-2">
                         <span class="font-extrabold text-[18px] uppercase tracking-wide" style="color: var(--brand-color)">${showDate ? item.date+' ' : ''}${smartTimeFormat(item.time)}</span>
                         <i data-lucide="chevron-right" class="w-5 h-5 text-dim opacity-60"></i>
                     </div>
-                    <p class="font-black text-[20px] text-important leading-tight mb-3">${note || '일정 기록'}</p>
-                    ${(dept || arrv) ? `<div class="bg-sub p-3.5 rounded-xl mb-3 text-[15.5px] font-bold flex items-center gap-2 text-important border border-custom"><span>${dept || '..'}</span> <i data-lucide="arrow-right" class="w-4 h-4 opacity-80" style="color: var(--brand-color)"></i> <span>${arrv || '..'}</span></div>` : ''}
-                    <div class="flex justify-between items-end text-[15px] mt-2">
+                    <p class="font-black text-[17px] text-important leading-[1.15] mb-2">${note || '일정 기록'}</p>
+                    ${(dept || arrv) ? `<div class="bg-sub p-3 rounded-xl mb-2 text-[15.5px] font-bold flex items-center gap-2 text-important border border-custom"><span>${dept || '..'}</span> <i data-lucide="arrow-right" class="w-4 h-4 opacity-80" style="color: var(--brand-color)"></i> <span>${arrv || '..'}</span></div>` : ''}
+                    <div class="flex justify-between items-end text-[15px] mt-1">
                         <span class="text-dim font-medium">${supp || ''} ${item.people > 0 ? '(인원:'+item.people+'명)' : ''}</span>
                         <b class="text-important text-[20px] font-black tracking-tighter">${priceDisplay}</b>
                     </div>
