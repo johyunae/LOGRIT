@@ -497,9 +497,32 @@
                             <div class="bg-modal border border-custom overflow-hidden rounded-3xl mb-10 shadow-sm">
                                 ${Object.entries(bySupp).sort((a,b)=>b[1].amount - a[1].amount).map(([n, d]) => `<div onclick="viewSupplierMonthly('${n}')" class="flex justify-between items-center p-5 border-b border-custom active:bg-sub cursor-pointer"><div class="flex flex-col gap-1"><span class="font-bold text-[16px]">${n}</span><span class="text-[12px] font-bold uppercase tracking-widest" style="color: var(--brand-color)">${d.count}건</span></div><span class="font-black text-[18px] opacity-90 ${d.amount < 0 ? 'text-red-400' : ''}">${formatKRW(d.amount)}원</span></div>`).join('') || '<p class="p-16 text-center text-dim text-[15px] font-bold">내역 없음</p>'}
                             </div>
-                            <h3 class="text-[13px] font-bold mb-4 px-1 tracking-widest text-dim">일별 매출 기록 (매출 / 일합계)</h3>
+                            <h3 class="text-[13px] font-bold mb-4 px-1 tracking-widest text-dim">일별 매출 기록 (일합계 / 거래처별)</h3>
                             <div class="bg-sub border border-custom rounded-3xl px-5 py-3 mb-20 shadow-sm">
-                                ${mData.map(it => { running += Number(it.amount); return `<div class="flex flex-col py-5 border-b border-custom last:border-0"><div class="flex justify-between items-end"><span class="text-[20px] font-black text-important">${it.date.split('-')[1]}월 ${it.date.split('-')[2]}일</span><span class="text-[13px] font-bold uppercase" style="color: var(--brand-color)">${cleanText(it.supplier, '기타')}</span></div><div class="flex justify-between mt-2"><span class="font-medium text-[15px] text-dim">${cleanText(it.note).substring(0,18)}</span><b class="text-important font-mono text-[16px] ${it.amount < 0 ? 'text-red-400' : ''}">${formatKRW(it.amount)} / ${formatKRW(running)}</b></div></div>`; }).join('') || '<p class="p-10 text-center text-dim text-[15px] font-bold">내역 없음</p>'}
+                                ${(() => {
+                                    const byDate = mData.reduce((acc, it) => { (acc[it.date] ||= []).push(it); return acc; }, {});
+                                    let monthRunning = 0;
+                                    return Object.entries(byDate).map(([date, items]) => {
+                                        const dayTotal = items.reduce((sum, it) => sum + Number(it.amount || 0), 0);
+                                        monthRunning += dayTotal;
+                                        const supplierTotals = items.reduce((acc, it) => {
+                                            const name = cleanText(it.supplier, '기타');
+                                            acc[name] = (acc[name] || 0) + Number(it.amount || 0);
+                                            return acc;
+                                        }, {});
+                                        const suppliersHtml = Object.entries(supplierTotals).sort((a,b) => b[1] - a[1]).map(([name, amount]) =>
+                                            `<div class="flex items-center justify-between py-1.5"><span class="text-[14px] font-bold text-dim">${name}</span><span class="text-[14px] font-black ${amount < 0 ? 'text-red-400' : ''}">${formatKRW(amount)}원</span></div>`
+                                        ).join('');
+                                        return `<div class="py-5 border-b border-custom last:border-0">
+                                            <div class="flex justify-between items-end gap-3">
+                                                <span class="text-[20px] font-black text-important whitespace-nowrap">${date.split('-')[1]}월 ${date.split('-')[2]}일</span>
+                                                <span class="text-[16px] font-black text-right ${dayTotal < 0 ? 'text-red-400' : ''}" style="${dayTotal >= 0 ? 'color:var(--brand-color)' : ''}">일합계 ${formatKRW(dayTotal)}원</span>
+                                            </div>
+                                            <div class="mt-3 px-3 py-2 rounded-2xl bg-card border border-custom">${suppliersHtml}</div>
+                                            <div class="flex justify-end mt-2"><span class="text-[12px] font-bold text-dim">월 누적 ${formatKRW(monthRunning)}원</span></div>
+                                        </div>`;
+                                    }).join('');
+                                })() || '<p class="p-10 text-center text-dim text-[15px] font-bold">내역 없음</p>'}
                             </div>
                         </div>
                     </div>`;
