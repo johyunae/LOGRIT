@@ -5,6 +5,7 @@ on:
       - 'app/**'
       - 'build.gradle'
       - 'settings.gradle'
+      - 'gradle.properties'
       - '.github/workflows/build-aab.yml'
   workflow_dispatch:
 
