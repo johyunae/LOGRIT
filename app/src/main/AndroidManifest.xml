@@ -5,6 +5,9 @@
         android:label="LOGRIT"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-4817798220289653~5418759819" />
         <activity
             android:name=".LauncherActivity"
             android:exported="true">
