@@ -1014,6 +1014,11 @@
                 // 현재 사용 중인 가로형 예약표는 열 위치 자체가 항목을 뜻하므로 OCR 단어의 X좌표로 각 칸을 구분한다.
                 const words=result?.data?.words||[];
                 if(words.length && img.width>0){
+                    window.__logritRedOcrWords=[];
+                    const sampleCanvas=document.createElement('canvas');
+                    sampleCanvas.width=img.width; sampleCanvas.height=img.height;
+                    const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});
+                    sampleCtx.drawImage(img,0,0);
                     const cols=Array.from({length:11},()=>[]);
                     const cuts=[0,.057,.11,.177,.23,.378,.52,.676,.724,.796,.914,1.01];
                     for(const w of words){
@@ -1021,6 +1026,19 @@
                         const x=((b.x0??b.left??0)+(b.x1??b.right??0))/2/img.width;
                         const ci=cuts.findIndex((v,i)=>i<cuts.length-1 && x>=v && x<cuts[i+1]);
                         if(ci>=0) cols[ci].push({x:(b.x0??b.left??0),t:w.text||''});
+                        // OCR 단어 영역에서 빨간색 픽셀이 충분히 검출되면 메모로 보낸다.
+                        const x0=Math.max(0,Math.floor(b.x0??b.left??0));
+                        const y0=Math.max(0,Math.floor(b.y0??b.top??0));
+                        const x1=Math.min(img.width,Math.ceil(b.x1??b.right??x0));
+                        const y1=Math.min(img.height,Math.ceil(b.y1??b.bottom??y0));
+                        if(x1>x0 && y1>y0 && w.text?.trim()){
+                            const pixels=sampleCtx.getImageData(x0,y0,x1-x0,y1-y0).data;
+                            let red=0;
+                            for(let p=0;p<pixels.length;p+=16){
+                                if(pixels[p]>110 && pixels[p]>pixels[p+1]*1.5 && pixels[p]>pixels[p+2]*1.4)red++;
+                            }
+                            if(red>=2)window.__logritRedOcrWords.push(w.text.trim());
+                        }
                     }
                     const val=i=>cols[i].sort((a,b)=>a.x-b.x).map(v=>v.t).join(' ').trim();
                     const row=cols.map((_,i)=>val(i));
@@ -1030,10 +1048,20 @@
                         if(dm){const base=document.getElementById('f-date')?.value||getLocalToday();date=(dm[3]||base.slice(0,4))+'-'+months[dm[2].toLowerCase()]+'-'+String(dm[1]).padStart(2,'0');}
                         const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
                         set('f-date',date); set('f-time',(row[2].match(/([0-2]?\\d[:：]\\d{2})/)||[])[1]?.replace('：',':'));
-                        set('f-people',(row[3].match(/\\d+/)||[])[0]); set('f-supplier',row[4]);
-                        set('f-departure',row[5]); set('f-arrival',row[6]);
-                        const extra=[row[7]&&('항공편 '+row[7]),row[8]&&('도착시간 '+row[8]),row[9],row[10]].filter(Boolean).join('\n');
-                        const note=document.getElementById('f-note'); if(note) note.value=extra;
+                        set('f-people',(row[3].match(/\\d+/)||[])[0]);
+                        // 예약표의 고객 이름은 거래처가 아니라 메모에 기록한다.
+                        const airport = v => /(?:busan\\s*)?(?:international\\s*airport|airport)|김해|국제공항|공항/i.test(v||'');
+                        const flight = (row[7]||'').trim();
+                        const fromAirport = airport(row[5]);
+                        const toAirport = airport(row[6]);
+                        const departure = fromAirport ? ['국제',flight].filter(Boolean).join(' ') : row[5];
+                        const arrival = toAirport ? '국제' : row[6];
+                        set('f-departure',departure); set('f-arrival',arrival);
+                        // 항공편 뒤의 시간과 운전자 정보는 입력하지 않는다.
+                        // 고객 이름과 원본 이미지에서 붉은색으로 표시된 문구만 메모한다.
+                        const redNotes = (window.__logritRedOcrWords||[]).filter(Boolean);
+                        const notes = [row[4],...redNotes].filter(Boolean);
+                        const note=document.getElementById('f-note'); if(note) note.value=[...new Set(notes)].join('\\n');
                         document.getElementById('auto-input-modal')?.remove(); window.saveDraft();
                         showToast('표의 각 칸을 구분해 자동 입력했습니다. 내용을 확인해 주세요.');
                         return;
