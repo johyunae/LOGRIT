@@ -1018,8 +1018,8 @@
                     sampleCanvas.width=img.width; sampleCanvas.height=img.height;
                     const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});
                     sampleCtx.drawImage(img,0,0);
-                    const cols=Array.from({length:11},()=>[]);
-                    const cuts=[0,.057,.11,.177,.23,.378,.52,.676,.724,.796,.914,1.01];
+                    const cols=Array.from({length:12},()=>[]);
+                    const cuts=[0,.0523,.1012,.161,.21,.345,.473,.610,.658,.724,.830,.921,1.01];
                     for(const w of words){
                         const b=w.bbox||w.boundingBox; if(!b) continue;
                         const x=((b.x0??b.left??0)+(b.x1??b.right??0))/2/img.width;
