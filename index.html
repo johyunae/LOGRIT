@@ -1004,9 +1004,42 @@
         window.handleAutoInputImage = async (e) => {
             const file=e.target.files?.[0]; if(!file) return; const status=document.getElementById('auto-image-status');
             if(!window.Tesseract){ if(status) status.textContent='이미지 읽기 기능을 불러오지 못했습니다.'; return; }
-            try { if(status) status.textContent='이미지 글자를 읽는 중...';
+            try {
+                if(status) status.textContent='이미지 글자를 읽는 중...';
+                const img=await createImageBitmap(file);
                 const result=await Tesseract.recognize(file,'kor+eng',{logger:m=>{if(status&&m.status==='recognizing text') status.textContent='이미지 분석 '+Math.round((m.progress||0)*100)+'%';}});
-                const text=result?.data?.text||''; if(!text.trim()){if(status)status.textContent='읽을 수 있는 글자를 찾지 못했습니다.';return;} window.parseAutoInputText(text);
+                const text=result?.data?.text||'';
+                if(!text.trim()){if(status)status.textContent='읽을 수 있는 글자를 찾지 못했습니다.';return;}
+
+                // 현재 사용 중인 가로형 예약표는 열 위치 자체가 항목을 뜻하므로 OCR 단어의 X좌표로 각 칸을 구분한다.
+                const words=result?.data?.words||[];
+                if(words.length && img.width>0){
+                    const cols=Array.from({length:11},()=>[]);
+                    const cuts=[0,.057,.11,.177,.23,.378,.52,.676,.724,.796,.914,1.01];
+                    for(const w of words){
+                        const b=w.bbox||w.boundingBox; if(!b) continue;
+                        const x=((b.x0??b.left??0)+(b.x1??b.right??0))/2/img.width;
+                        const ci=cuts.findIndex((v,i)=>i<cuts.length-1 && x>=v && x<cuts[i+1]);
+                        if(ci>=0) cols[ci].push({x:(b.x0??b.left??0),t:w.text||''});
+                    }
+                    const val=i=>cols[i].sort((a,b)=>a.x-b.x).map(v=>v.t).join(' ').trim();
+                    const row=cols.map((_,i)=>val(i));
+                    if(row.filter(Boolean).length>=6){
+                        const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+                        let date=''; const dm=row[0].match(/(\\d{1,2})[-\\s](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[-\\s](20\\d{2}))?/i);
+                        if(dm){const base=document.getElementById('f-date')?.value||getLocalToday();date=(dm[3]||base.slice(0,4))+'-'+months[dm[2].toLowerCase()]+'-'+String(dm[1]).padStart(2,'0');}
+                        const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+                        set('f-date',date); set('f-time',(row[2].match(/([0-2]?\\d[:：]\\d{2})/)||[])[1]?.replace('：',':'));
+                        set('f-people',(row[3].match(/\\d+/)||[])[0]); set('f-supplier',row[4]);
+                        set('f-departure',row[5]); set('f-arrival',row[6]);
+                        const extra=[row[7]&&('항공편 '+row[7]),row[8]&&('도착시간 '+row[8]),row[9],row[10]].filter(Boolean).join('\n');
+                        const note=document.getElementById('f-note'); if(note) note.value=extra;
+                        document.getElementById('auto-input-modal')?.remove(); window.saveDraft();
+                        showToast('표의 각 칸을 구분해 자동 입력했습니다. 내용을 확인해 주세요.');
+                        return;
+                    }
+                }
+                window.parseAutoInputText(text);
             } catch(err){console.error(err);if(status)status.textContent='이미지를 읽지 못했습니다. 다른 이미지로 다시 시도해 주세요.';}
         };
 
