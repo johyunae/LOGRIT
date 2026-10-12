@@ -1050,17 +1050,15 @@
                         set('f-people',(row[3].match(/\\d+/)||[])[0]);
                         // 예약표의 고객 이름은 거래처가 아니라 메모에 기록한다.
                         const airport = v => /(?:busan\\s*)?(?:international\\s*airport|airport)|김해|국제공항|공항/i.test(v||'');
-                        const flight = (row[7]||'').trim();
+                        const flight = (row[7]||'').replace(/\\s+/g,' ').trim();
                         const fromAirport = airport(row[5]);
                         const toAirport = airport(row[6]);
-                        const departure = fromAirport ? ['국제',flight].filter(Boolean).join(' ') : row[5];
-                        const arrival = toAirport ? '국제' : row[6];
+                        const departure = fromAirport ? flight : row[5];
+                        const arrival = toAirport ? flight : row[6];
                         set('f-departure',departure); set('f-arrival',arrival);
-                        // 항공편 뒤의 시간과 운전자 정보는 입력하지 않는다.
-                        // 고객 이름과 원본 이미지에서 붉은색으로 표시된 문구만 메모한다.
-                        const redNotes = (window.__logritRedOcrWords||[]).filter(Boolean);
-                        const notes = [row[4],...redNotes].filter(Boolean);
-                        const note=document.getElementById('f-note'); if(note) note.value=[...new Set(notes)].join('\\n');
+                        // 고객 이름만 메모에 남긴다. 기사 연락처와 빨간색 안내 문구는 제외.
+                        const note=document.getElementById('f-note');
+                        if(note) note.value=(row[4]||'').replace(/\\\\n/g,' ').replace(/\\s+/g,' ').replace(/\\s*\\+\\s*(\\d+)$/,' +$1').trim();
                         document.getElementById('auto-input-modal')?.remove(); window.saveDraft();
                         showToast('표의 각 칸을 구분해 자동 입력했습니다. 내용을 확인해 주세요.');
                         return;
