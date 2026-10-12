@@ -122,6 +122,7 @@
         .mb-4 { margin-bottom: 0.85rem !important; }
 
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="pb-40 no-scrollbar">
 
@@ -914,6 +915,58 @@
             localStorage.removeItem('logrit_draft_data'); 
         };
 
+
+        window.parseAutoInputText = (raw) => {
+            const text = String(raw || '').replace(/\r/g, '').trim();
+            if (!text) { showToast('붙여넣을 내용이 없습니다.'); return; }
+            const lines = text.split('\n').map(v => v.trim()).filter(Boolean);
+            const pick = (...labels) => {
+                for (const line of lines) for (const label of labels) {
+                    const m = line.match(new RegExp('(?:^|\\s)' + label + '\\s*[:：-]?\\s*(.+)$', 'i'));
+                    if (m) return m[1].trim();
+                }
+                return '';
+            };
+            const set = (id, value) => { const el = document.getElementById(id); if (el && value !== '' && value != null) el.value = value; };
+            let date = '', m = text.match(/(20\\d{2})[.\\/-]\\s*(\\d{1,2})[.\\/-]\\s*(\\d{1,2})/);
+            if (m) date = m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
+            if (!date) { m = text.match(/(?<!\\d)(\\d{1,2})\\s*[월\\/.\\-]\\s*(\\d{1,2})\\s*(?:일)?/); if (m) { const base = document.getElementById('f-date')?.value || getLocalToday(); date = base.slice(0,4)+'-'+String(m[1]).padStart(2,'0')+'-'+String(m[2]).padStart(2,'0'); } }
+            let time = pick('시간','픽업시간','미팅시간','time','pickup(?:\\s*time)?');
+            if (!time) { m = text.match(/(?:^|\\s)([01]?\\d|2[0-3])[:：](\\d{2})(?:\\s|$)/m); if (m) time=String(m[1]).padStart(2,'0')+':'+m[2]; }
+            else { const tm=time.match(/([01]?\\d|2[0-3])[:：]?(\\d{2})/); time=tm?String(tm[1]).padStart(2,'0')+':'+tm[2]:time; }
+            let people = pick('인원','인원수','people','pax','passengers');
+            if (!people) { m=text.match(/(\\d{1,2})\\s*(?:명|pax|persons?|people)/i); if(m) people=m[1]; } else { m=people.match(/\\d+/); people=m?m[0]:people; }
+            const departure=pick('출발지','출발','픽업','pickup','from');
+            const arrival=pick('도착지','도착','드롭','drop(?:off)?','destination','to');
+            const supplier=pick('거래처','거래처명','업체','client','company','agency');
+            let amount=pick('금액','매출','요금','amount','price','fare'); if(amount) amount=amount.replace(/[^0-9-]/g,'');
+            set('f-date',date); set('f-departure',departure); set('f-arrival',arrival); set('f-time',time); set('f-people',people); set('f-supplier',supplier); set('f-amount-display',amount);
+            const note=document.getElementById('f-note'); if(note) note.value=text;
+            document.getElementById('auto-input-modal')?.remove(); window.saveDraft();
+            showToast('자동 입력했습니다. 내용을 확인한 뒤 저장해 주세요.');
+        };
+
+        window.openAutoInputModal = () => {
+            document.getElementById('auto-input-modal')?.remove();
+            const html = `<div id="auto-input-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[300] flex items-end"><div class="bg-modal w-full max-w-md mx-auto rounded-t-[2rem] p-6 pb-10 border-t border-custom shadow-2xl">
+                <div class="flex justify-between items-center mb-4"><div><h3 class="text-xl font-black">자동 입력</h3><p class="text-[12px] text-dim mt-1">카톡 글 또는 예약 이미지를 불러오세요.</p></div><button type="button" onclick="document.getElementById('auto-input-modal').remove()" class="p-2.5 btn-close rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+                <textarea id="auto-input-text" class="input-field h-40 p-4 mb-3" placeholder="카톡 예약 내용을 여기에 붙여넣기"></textarea>
+                <button type="button" onclick="window.parseAutoInputText(document.getElementById('auto-input-text').value)" class="w-full btn-primary mb-3">텍스트 자동 입력</button>
+                <button type="button" onclick="document.getElementById('auto-image-input').click()" class="w-full btn-copy py-4 rounded-2xl font-black flex items-center justify-center gap-2"><i data-lucide="image" class="w-5 h-5"></i> 예약 이미지 선택</button>
+                <input id="auto-image-input" type="file" accept="image/*" class="hidden" onchange="window.handleAutoInputImage(event)"><div id="auto-image-status" class="text-center text-[12px] text-dim mt-3"></div>
+            </div></div>`;
+            document.body.insertAdjacentHTML('beforeend',html); if(window.lucide) lucide.createIcons();
+        };
+
+        window.handleAutoInputImage = async (e) => {
+            const file=e.target.files?.[0]; if(!file) return; const status=document.getElementById('auto-image-status');
+            if(!window.Tesseract){ if(status) status.textContent='이미지 읽기 기능을 불러오지 못했습니다.'; return; }
+            try { if(status) status.textContent='이미지 글자를 읽는 중...';
+                const result=await Tesseract.recognize(file,'kor+eng',{logger:m=>{if(status&&m.status==='recognizing text') status.textContent='이미지 분석 '+Math.round((m.progress||0)*100)+'%';}});
+                const text=result?.data?.text||''; if(!text.trim()){if(status)status.textContent='읽을 수 있는 글자를 찾지 못했습니다.';return;} window.parseAutoInputText(text);
+            } catch(err){console.error(err);if(status)status.textContent='이미지를 읽지 못했습니다. 다른 이미지로 다시 시도해 주세요.';}
+        };
+
         window.openEntryModal = (id = null, presetDate = null, draftData = null) => {
             closeDailyModal(); 
             currentEditId = draftData ? draftData.id : (id ? String(id) : null);
@@ -932,6 +985,7 @@
                     <button type="button" onclick="closeEntryModal()" class="p-2.5 btn-close rounded-full active:scale-95"><i data-lucide="x" class="w-6 h-6"></i></button>
                 </div>
                 <form id="record-form" onsubmit="window.saveRecord(event)" oninput="window.saveDraft()">
+                    <button type="button" onclick="window.openAutoInputModal()" class="w-full btn-add py-3.5 rounded-2xl font-black mb-3 flex items-center justify-center gap-2"><i data-lucide="sparkles" class="w-5 h-5"></i> 카톡/이미지 자동 입력</button>
                     <div class="space-y-2">
                         <input type="date" id="f-date" class="input-field" required>
                         <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
