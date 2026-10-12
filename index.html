@@ -928,20 +928,63 @@
                 return '';
             };
             const set = (id, value) => { const el = document.getElementById(id); if (el && value !== '' && value != null) el.value = value; };
+            const used = new Set();
+            const mark = (value) => { if (!value) return; lines.forEach((v,i)=>{ if (v.includes(value) || value.includes(v)) used.add(i); }); };
+
             let date = '', m = text.match(/(20\\d{2})[.\\/-]\\s*(\\d{1,2})[.\\/-]\\s*(\\d{1,2})/);
-            if (m) date = m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
-            if (!date) { m = text.match(/(?<!\\d)(\\d{1,2})\\s*[월\\/.\\-]\\s*(\\d{1,2})\\s*(?:일)?/); if (m) { const base = document.getElementById('f-date')?.value || getLocalToday(); date = base.slice(0,4)+'-'+String(m[1]).padStart(2,'0')+'-'+String(m[2]).padStart(2,'0'); } }
+            if (m) date = m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
+            if (!date) { m=text.match(/(?<!\\d)(\\d{1,2})\\s*[월\\/.\\-]\\s*(\\d{1,2})\\s*(?:일)?/); if(m){const base=document.getElementById('f-date')?.value||getLocalToday();date=base.slice(0,4)+'-'+String(m[1]).padStart(2,'0')+'-'+String(m[2]).padStart(2,'0');} }
+            if (!date) {
+                const months={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+                m=text.match(/(?<!\\d)(\\d{1,2})[-\\s](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[-\\s](20\\d{2}))?/i);
+                if(m){const base=document.getElementById('f-date')?.value||getLocalToday();date=(m[3]||base.slice(0,4))+'-'+String(months[m[2].toLowerCase()]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');}
+            }
+
             let time = pick('시간','픽업시간','미팅시간','time','pickup(?:\\s*time)?');
-            if (!time) { m = text.match(/(?:^|\\s)([01]?\\d|2[0-3])[:：](\\d{2})(?:\\s|$)/m); if (m) time=String(m[1]).padStart(2,'0')+':'+m[2]; }
-            else { const tm=time.match(/([01]?\\d|2[0-3])[:：]?(\\d{2})/); time=tm?String(tm[1]).padStart(2,'0')+':'+tm[2]:time; }
-            let people = pick('인원','인원수','people','pax','passengers');
-            if (!people) { m=text.match(/(\\d{1,2})\\s*(?:명|pax|persons?|people)/i); if(m) people=m[1]; } else { m=people.match(/\\d+/); people=m?m[0]:people; }
-            const departure=pick('출발지','출발','픽업','pickup','from');
-            const arrival=pick('도착지','도착','드롭','drop(?:off)?','destination','to');
-            const supplier=pick('거래처','거래처명','업체','client','company','agency');
+            const times=[...text.matchAll(/(?:^|\\s)([01]?\\d|2[0-3])[:：](\\d{2})(?=\\s|$)/gm)].map(x=>String(x[1]).padStart(2,'0')+':'+x[2]);
+            if (!time && times.length) time=times[0];
+            else if(time){const tm=time.match(/([01]?\\d|2[0-3])[:：]?(\\d{2})/);time=tm?String(tm[1]).padStart(2,'0')+':'+tm[2]:time;}
+
+            let people=pick('인원','인원수','people','pax','passengers');
+            if(!people){m=text.match(/(?:^|\\n)\\s*(\\d{1,2})\\s*(?:명|pax|persons?|people)?\\s*(?=\\n|$)/im);if(m)people=m[1];}
+            else {m=people.match(/\\d+/);people=m?m[0]:people;}
+
+            let departure=pick('출발지','출발','픽업','pickup','from');
+            let arrival=pick('도착지','도착','드롭','drop(?:off)?','destination','to');
+            let supplier=pick('거래처','거래처명','업체','client','company','agency');
             let amount=pick('금액','매출','요금','amount','price','fare'); if(amount) amount=amount.replace(/[^0-9-]/g,'');
+
+            // 표 형태 예약 이미지 보완: 날짜→요일→시간→인원→고객→출발지→도착지 순서를 인식한다.
+            if(!departure || !arrival){
+                const ignore=/^(mon|tue|wed|thu|fri|sat|sun)$/i;
+                const dateLine=lines.findIndex(v=>/\\d{1,2}[-\\s](jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(v));
+                let ti=lines.findIndex(v=>/^(?:[01]?\\d|2[0-3])[:：]\\d{2}$/.test(v));
+                if(ti<0) ti=lines.findIndex(v=>/(?:[01]?\\d|2[0-3])[:：]\\d{2}/.test(v));
+                if(ti>=0){
+                    let p=ti+1; while(p<lines.length && (ignore.test(lines[p]) || /^\\d{1,2}[:：]\\d{2}$/.test(lines[p]))) p++;
+                    if(!people && p<lines.length && /^\\d{1,2}$/.test(lines[p])) {people=lines[p];p++;}
+                    const candidates=[];
+                    for(let i=p;i<lines.length;i++){
+                        const v=lines[i];
+                        if(/^\\d{1,2}[:：]\\d{2}$/.test(v) || /^(KE|OZ|TW|BX|LJ|7C|RS|ZE)\\s*\\d+/i.test(v) || /driver|car[.:]|취소|변경/i.test(v)) continue;
+                        candidates.push(v);
+                    }
+                    if(candidates.length>=3){
+                        if(!supplier) supplier=candidates[0];
+                        if(!departure) departure=candidates[1];
+                        if(!arrival) arrival=candidates[2];
+                    } else if(candidates.length>=2){
+                        if(!departure) departure=candidates[0];
+                        if(!arrival) arrival=candidates[1];
+                    }
+                }
+            }
+
             set('f-date',date); set('f-departure',departure); set('f-arrival',arrival); set('f-time',time); set('f-people',people); set('f-supplier',supplier); set('f-amount-display',amount);
-            const note=document.getElementById('f-note'); if(note) note.value=text;
+            [departure,arrival,supplier,time,people].forEach(mark);
+            lines.forEach((v,i)=>{ if(date && (/\\d{1,2}[-\\s](jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(v)||/20\\d{2}[.\\/-]/.test(v))) used.add(i); });
+            const noteText=lines.filter((v,i)=>!used.has(i) && !/^(mon|tue|wed|thu|fri|sat|sun)$/i.test(v)).join('\n');
+            const note=document.getElementById('f-note'); if(note) note.value=noteText;
             document.getElementById('auto-input-modal')?.remove(); window.saveDraft();
             showToast('자동 입력했습니다. 내용을 확인한 뒤 저장해 주세요.');
         };
