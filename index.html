@@ -62,6 +62,9 @@
         .border-custom { border-color: var(--border-color); }
 
         .card-payment-status { display:inline-flex; align-items:center; margin:2px 0 8px; padding:8px 10px; border:1px solid var(--brand-color); border-radius:10px; color:var(--brand-color); background:var(--sub-bg); font-size:12px; font-weight:800; line-height:1.35; cursor:pointer; text-align:left; }
+        #f-card-payment-panel .card-payment-status { font-size:16px; padding:12px 14px; border-radius:12px; }
+        #f-card-payment-done { width:26px; height:26px; flex-shrink:0; accent-color:var(--brand-color); }
+        #f-amount-display { font-size:18px; font-weight:700; }
         .card-payment-status[hidden] { display:none; }
         .card-payment-status.is-paid { color:#22c55e; border-color:#22c55e; }
         body.light-mode .card-payment-status.is-paid { color:#15803d; border-color:#15803d; }
@@ -1180,11 +1183,10 @@
                         <input type="text" id="f-supplier" placeholder="거래처명 Client" class="input-field">
                         
                         <div class="relative w-full text-important">
-                            <input type="text" id="f-amount-display" placeholder="매출 Amount (- 입력 가능)" inputmode="text" oninput="window.handleAmountInput(this); window.saveDraft();" class="input-field font-black text-2xl pr-10 text-important" style="color: var(--brand-color)">
+                            <input type="text" id="f-amount-display" placeholder="매출 Amount (- 입력 가능)" inputmode="text" oninput="window.handleAmountInput(this); window.saveDraft();" class="input-field font-bold text-[18px] pr-10 text-important" style="color: var(--brand-color)">
                             <span class="absolute right-5 top-1/2 -translate-y-1/2 opacity-60 font-bold text-[16px] text-dim">원</span>
                         </div>
                         
-                        <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
                         <input type="hidden" id="f-payment-custom-label">
                         <input type="hidden" id="f-payment-check-hidden" value="false">
                         <button type="button" id="f-payment-add" onclick="window.editPaymentCheck()" class="card-payment-status">＋ 결제 확인 표시 추가</button>
@@ -1198,6 +1200,7 @@
                                 <button type="button" onclick="window.removePaymentCheck()">표시 삭제</button>
                             </div>
                         </div>
+                        <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
                         <div class="px-1 pt-1">
                             <div class="text-[12px] font-bold text-dim mb-2">일정 색상</div>
                             <div id="record-color-picker" class="grid grid-cols-7 gap-x-1 gap-y-2">
