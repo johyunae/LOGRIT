@@ -162,82 +162,6 @@
             });
         }
 
-        // PWA 설치 판정 진단
-        window.__logritInstallPromptSeen = false;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            window.__logritInstallPromptSeen = true;
-            window.__logritDeferredInstallPrompt = e;
-        });
-
-        window.openPwaDiagnostic = async () => {
-            let swText = '지원 안 됨';
-            let manifestText = '확인 안 됨';
-            let icon192Text = '확인 안 됨';
-            let icon512Text = '확인 안 됨';
-            let manifestData = null;
-
-            if ('serviceWorker' in navigator) {
-                try {
-                    const reg = await navigator.serviceWorker.getRegistration('/LOGRIT/');
-                    swText = reg ? ('등록됨 · ' + reg.scope) : '등록 안 됨';
-                } catch(e) { swText = '확인 오류'; }
-            }
-
-            const manifestLink = document.querySelector('link[rel="manifest"]');
-            if (manifestLink) {
-                try {
-                    const res = await fetch(manifestLink.href, { cache: 'no-store' });
-                    manifestText = res.ok ? ('정상 · HTTP ' + res.status) : ('오류 · HTTP ' + res.status);
-                    if (res.ok) manifestData = await res.json();
-                } catch(e) { manifestText = '읽기 실패 · ' + e.message; }
-            } else {
-                manifestText = '링크 없음';
-            }
-
-            const checkImage = async (url) => {
-                try {
-                    const res = await fetch(url, { cache: 'no-store' });
-                    if (!res.ok) return '오류 · HTTP ' + res.status;
-                    const blob = await res.blob();
-                    return await new Promise(resolve => {
-                        const img = new Image();
-                        img.onload = () => { URL.revokeObjectURL(img.src); resolve('정상 · ' + img.naturalWidth + '×' + img.naturalHeight + ' · ' + blob.type); };
-                        img.onerror = () => resolve('이미지 해석 실패 · ' + blob.type);
-                        img.src = URL.createObjectURL(blob);
-                    });
-                } catch(e) { return '읽기 실패 · ' + e.message; }
-            };
-
-            icon192Text = await checkImage('/LOGRIT/icon-192.png');
-            icon512Text = await checkImage('/LOGRIT/icon.png');
-
-            const standaloneMedia = window.matchMedia('(display-mode: standalone)').matches;
-            const fullscreenMedia = window.matchMedia('(display-mode: fullscreen)').matches;
-            const minimalUiMedia = window.matchMedia('(display-mode: minimal-ui)').matches;
-            const iosStandalone = navigator.standalone === true;
-            const displayMode = standaloneMedia ? 'standalone' : (fullscreenMedia ? 'fullscreen' : (minimalUiMedia ? 'minimal-ui' : 'browser'));
-
-            const lines = [
-                '주소: ' + location.href,
-                'HTTPS: ' + (location.protocol === 'https:' ? '정상' : '아님'),
-                'Manifest 연결: ' + (manifestLink ? manifestLink.href : '없음'),
-                'Manifest 응답: ' + manifestText,
-                'Manifest id: ' + (manifestData?.id || '없음'),
-                'start_url: ' + (manifestData?.start_url || '없음'),
-                'scope: ' + (manifestData?.scope || '없음'),
-                'display: ' + (manifestData?.display || '없음'),
-                '192 아이콘: ' + icon192Text,
-                '512 아이콘: ' + icon512Text,
-                'Service Worker: ' + swText,
-                '설치 이벤트: ' + (window.__logritInstallPromptSeen ? '발생함' : '발생 안 함'),
-                '현재 display-mode: ' + displayMode,
-                'navigator.standalone: ' + (iosStandalone ? '예' : '아니오'),
-                'referrer: ' + (document.referrer || '없음'),
-                'User Agent: ' + navigator.userAgent
-            ];
-            alert('LOGRIT PWA 상세 진단\n\n' + lines.join('\n'));
-        };
-
         const STORAGE_KEY = 'logrit_v130_master_storage';
         let db = [];
         try { 
@@ -549,13 +473,6 @@
                             </button>
                         </div>
 
-                        <div class="p-6 bg-card rounded-3xl border border-custom shadow-sm">
-                            <div class="flex items-start justify-between gap-4">
-                                <div><div class="font-black text-[17px]">로그릿 월 구독</div><div id="play-subscription-price" class="mt-1 text-[14px] font-bold" style="color:var(--brand-color)">월 3,000원</div><div id="play-subscription-status" class="mt-2 text-[12px] text-dim">Google Play 구독 상태를 확인합니다.</div></div>
-                                <button id="play-subscribe-button" type="button" onclick="window.purchaseLogritSubscription()" class="px-4 h-10 bg-brand rounded-xl text-[13px] font-black whitespace-nowrap active:scale-95 transition-transform">구독하기</button>
-                            </div>
-                        </div>
-
                         <div class="pt-6 pb-2">
                             <h3 class="text-[13px] uppercase font-bold mb-3 px-1 tracking-widest text-dim">일정 색상 이름</h3>
                             <div class="p-5 bg-card rounded-3xl border border-custom shadow-sm mb-8">
@@ -564,10 +481,6 @@
                                     ${RECORD_COLORS.map(color => `<div class="flex flex-col items-center min-w-0"><div class="w-8 h-8 rounded-full" style="background:${color}"></div><button type="button" data-color="${color}" onclick="window.editRecordColorLabel('${color}')" class="record-color-label mt-2 px-1 py-1 text-[11px] font-bold text-dim max-w-[48px] truncate active:opacity-60">${window.getRecordColorLabels()[color] || '이름'}</button></div>`).join('')}
                                 </div>
                             </div>
-                            <button onclick="openPwaDiagnostic()" class="w-full p-5 mb-6 bg-card border border-custom rounded-2xl font-bold flex items-center justify-between shadow-sm cursor-pointer active:opacity-70 text-[15px]">
-                                <div class="flex items-center gap-3"><i data-lucide="scan-search" class="text-indigo-400"></i> 앱 설치 상태 진단</div>
-                                <i data-lucide="chevron-right" class="text-dim w-4 h-4"></i>
-                            </button>
                             <h3 class="text-[13px] uppercase font-bold mb-3 px-1 tracking-widest text-dim">데이터 관리</h3>
                             <div class="grid grid-cols-1 gap-3">
                                 <button onclick="openImportModal()" class="w-full p-5 bg-card border border-custom rounded-2xl font-bold flex items-center justify-between shadow-sm cursor-pointer active:opacity-70 text-[15px]">
@@ -1235,44 +1148,6 @@
         window.autoFormatTime = (el) => { el.value = el.value.replace(/[^0-9:]/g, ''); };
         window.formatTimeOnBlur = (el) => { let v = el.value.replace(/[^0-9]/g, ''); if(!v) return; if(v.length<=2) el.value = v.padStart(2,'0')+':00'; else if(v.length===3) el.value = '0'+v[0]+':'+v.slice(1,3); else el.value = v.slice(0,2)+':'+v.slice(2,4); };
         
-        // Google Play 월 구독 (TWA + Digital Goods API)
-        const LOGRIT_SUBSCRIPTION_SKU = 'logrit_monthly';
-        const PLAY_BILLING_METHOD = 'https://play.google.com/billing';
-
-        window.refreshLogritSubscription = async () => {
-            const statusEl = document.getElementById('play-subscription-status');
-            const priceEl = document.getElementById('play-subscription-price');
-            const buttonEl = document.getElementById('play-subscribe-button');
-            if (!statusEl) return;
-            if (!('getDigitalGoodsService' in window)) { statusEl.textContent = 'Google Play에서 설치한 로그릿 앱에서 구독할 수 있습니다.'; return; }
-            try {
-                const service = await window.getDigitalGoodsService(PLAY_BILLING_METHOD);
-                const details = await service.getDetails([LOGRIT_SUBSCRIPTION_SKU]);
-                if (details && details[0] && details[0].price) {
-                    const p = details[0].price;
-                    priceEl.textContent = new Intl.NumberFormat(navigator.language, {style:'currency', currency:p.currency}).format(p.value) + ' / 월';
-                }
-                const purchases = await service.listPurchases();
-                const active = purchases.some(p => p.itemId === LOGRIT_SUBSCRIPTION_SKU);
-                statusEl.textContent = active ? '구독 이용 중' : '현재 구독 중이 아닙니다.';
-                if (buttonEl) { buttonEl.textContent = active ? '구독 중' : '구독하기'; buttonEl.disabled = active; buttonEl.style.opacity = active ? '0.55' : '1'; }
-            } catch (err) { statusEl.textContent = 'Google Play 구독 정보를 불러오지 못했습니다.'; console.log('Play Billing status error:', err); }
-        };
-
-        window.purchaseLogritSubscription = async () => {
-            if (!('getDigitalGoodsService' in window)) { showToast('Google Play에서 설치한 로그릿 앱에서 구독할 수 있습니다.'); return; }
-            try {
-                const service = await window.getDigitalGoodsService(PLAY_BILLING_METHOD);
-                const request = new PaymentRequest([{supportedMethods: PLAY_BILLING_METHOD, data:{sku:LOGRIT_SUBSCRIPTION_SKU}}], {total:{label:'로그릿 월 구독', amount:{currency:'KRW', value:'0'}}});
-                const response = await request.show();
-                const token = response && response.details ? response.details.token : null;
-                if (token) await service.acknowledge(token, 'subscription');
-                await response.complete('success');
-                showToast('구독이 완료되었습니다.');
-                await window.refreshLogritSubscription();
-            } catch (err) { if (err && err.name !== 'AbortError') { showToast('구독 결제를 완료하지 못했습니다.'); console.log('Play Billing purchase error:', err); } }
-        };
-
         window.handleAmountInput = (el) => { 
             let v = el.value;
             let isMinus = v.startsWith('-');
