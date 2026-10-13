@@ -1033,12 +1033,15 @@
                     const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});
                     sampleCtx.drawImage(img,0,0);
                     const cols=Array.from({length:12},()=>[]);
+                    const headers=words.filter(w=>/^(?:DATE|DAY|TIME|PAX|NO|NAME|FROM|TO|FLIGHT|FLT|DRIVER|INFO|REMARK|담당자)$/i.test((w.text||'').trim()));
+                    const headerBottom=headers.length>=4 ? Math.max(...headers.map(w=>(w.bbox||w.boundingBox)?.y1 ?? (w.bbox||w.boundingBox)?.bottom ?? 0)) : -1;
                     const cuts=[0,.0523,.1012,.161,.21,.345,.473,.610,.658,.724,.830,.921,1.01];
                     for(const w of words){
                         const b=w.bbox||w.boundingBox; if(!b) continue;
+                        if((b.y0??b.top??0)<headerBottom) continue;
                         const x=((b.x0??b.left??0)+(b.x1??b.right??0))/2/img.width;
                         const ci=cuts.findIndex((v,i)=>i<cuts.length-1 && x>=v && x<cuts[i+1]);
-                        if(ci>=0) cols[ci].push({x:(b.x0??b.left??0),t:w.text||''});
+                        if(ci>=0) cols[ci].push({x:(b.x0??b.left??0),y:(b.y0??b.top??0),h:(b.y1??b.bottom??0)-(b.y0??b.top??0),t:w.text||''});
                         // OCR 단어 영역에서 빨간색 픽셀이 충분히 검출되면 메모로 보낸다.
                         const x0=Math.max(0,Math.floor(b.x0??b.left??0));
                         const y0=Math.max(0,Math.floor(b.y0??b.top??0));
@@ -1053,18 +1056,18 @@
                             if(red>=2)window.__logritRedOcrWords.push(w.text.trim());
                         }
                     }
-                    const val=i=>cols[i].sort((a,b)=>a.x-b.x).map(v=>v.t).join(' ').trim();
+                    const val=i=>cols[i].sort((a,b)=>Math.abs(a.y-b.y)>Math.max(a.h,b.h)*0.5 ? a.y-b.y : a.x-b.x).map(v=>v.t).join(' ').trim();
                     const row=cols.map((_,i)=>val(i));
                     if(row.filter(Boolean).length>=6){
                         const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
-                        let date=''; const dm=row[0].match(/(\\d{1,2})[-\\s](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[-\\s](20\\d{2}))?/i);
+                        let date=''; const dm=row[0].match(/(\d{1,2})[-\s](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[-\s](20\d{2}))?/i);
                         if(dm){const base=document.getElementById('f-date')?.value||getLocalToday();date=(dm[3]||base.slice(0,4))+'-'+months[dm[2].toLowerCase()]+'-'+String(dm[1]).padStart(2,'0');}
                         const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
-                        set('f-date',date); set('f-time',(row[2].match(/([0-2]?\\d[:：]\\d{2})/)||[])[1]?.replace('：',':'));
-                        set('f-people',(row[3].match(/\\d+/)||[])[0]);
+                        set('f-date',date); set('f-time',(row[2].match(/([0-2]?\d[:：]\d{2})/)||[])[1]?.replace('：',':'));
+                        set('f-people',(row[3].match(/\d+/)||[])[0]);
                         // 예약표의 고객 이름은 거래처가 아니라 메모에 기록한다.
-                        const airport = v => /(?:busan\\s*)?(?:international\\s*airport|airport)|김해|국제공항|공항/i.test(v||'');
-                        const flight = (row[7]||'').replace(/\\s+/g,' ').trim();
+                        const airport = v => /(?:busan\s*)?(?:international\s*airport|airport)|김해|국제공항|공항/i.test(v||'');
+                        const flight = (row[7]||'').replace(/\s+/g,' ').trim();
                         const fromAirport = airport(row[5]);
                         const toAirport = airport(row[6]);
                         const departure = fromAirport ? flight : row[5];
@@ -1072,7 +1075,7 @@
                         set('f-departure',departure); set('f-arrival',arrival);
                         // 고객 이름만 메모에 남긴다. 기사 연락처와 빨간색 안내 문구는 제외.
                         const note=document.getElementById('f-note');
-                        if(note) note.value=(row[4]||'').replace(/\\\\n/g,' ').replace(/\\s+/g,' ').replace(/\\s*\\+\\s*(\\d+)$/,' +$1').trim();
+                        if(note) note.value=(row[4]||'').replace(/\\n/g,' ').replace(/\s+/g,' ').replace(/\s*\+\s*(\d+)$/,' +$1').trim();
                         document.getElementById('auto-input-modal')?.remove(); window.saveDraft();
                         showToast('표의 각 칸을 구분해 자동 입력했습니다. 내용을 확인해 주세요.');
                         return;
