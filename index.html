@@ -61,6 +61,9 @@
         .bg-brand { background-color: var(--brand-color); color: #ffffff; }
         .border-custom { border-color: var(--border-color); }
 
+        .card-payment-status { display:inline-flex; align-items:center; margin:2px 0 8px; padding:8px 10px; border:1px solid var(--brand-color); border-radius:10px; color:var(--brand-color); background:var(--sub-bg); font-size:12px; font-weight:800; line-height:1.35; cursor:pointer; text-align:left; }
+        .card-payment-status.is-paid { color:#22c55e; border-color:#22c55e; }
+        body.light-mode .card-payment-status.is-paid { color:#15803d; border-color:#15803d; }
         .fixed-header { position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 100; background-color: var(--nav-bg); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--border-color); transition: 0.3s; }
         .sticky-sub { position: sticky; top: 56px; z-index: 45; background-color: var(--bg-color); width: 100%; border-bottom: 1px solid var(--calendar-border); transition: background-color 0.3s, color 0.3s; margin-top: -1px; }
         .calendar-fixed-sub { position: fixed; top: 56px; left: 0; right: 0; z-index: 55; box-sizing: border-box; background-color: var(--bg-color); border-bottom: 1px solid var(--calendar-border); padding: 0 20px !important; margin: 0 !important; height: 88px; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
@@ -293,6 +296,59 @@
             return null;
         }
 
+        function getCardPayment(note) {
+            const match = String(note || '').match(/(?:^|[\s([{,;])(?:카드|카)\s*[:：]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*(만원|만|원)?(?=$|[\s)\]},;.!?]|결제)/);
+            if (!match) return null;
+            const number = Number(match[1].replace(/,/g, ''));
+            const amount = Math.round(number * (match[2] === '원' || (!match[2] && number >= 10000) ? 1 : 10000));
+            if (!Number.isSafeInteger(amount) || amount <= 0) return null;
+            const label = amount % 10000 === 0 ? formatKRW(amount / 10000) + '만 원' : formatKRW(amount) + '원';
+            return { amount, label: '카드 ' + label };
+        }
+
+        function isCardPaymentDone(item) {
+            const payment = getCardPayment(item.note);
+            return !!payment && item.cardPaymentDone === true && Number(item.cardPaymentAmount) === payment.amount;
+        }
+
+        function paymentAttribute(value) {
+            return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
+        }
+
+        function renderCardPayment(item) {
+            const payment = getCardPayment(item.note);
+            if (!payment) return '';
+            const done = isCardPaymentDone(item);
+            return `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleCardPayment(this.dataset.paymentId)" aria-pressed="${done}" class="card-payment-status ${done ? 'is-paid' : ''}">${done ? '✓' : '□'} ${payment.label} · 결제 ${done ? '완료' : '미완료'}</button>`;
+        }
+
+        window.toggleCardPayment = (id) => {
+            const item = db.find(x => String(x.id) === String(id));
+            const payment = item && getCardPayment(item.note);
+            if (!payment) return;
+            const done = !isCardPaymentDone(item);
+            const updated = { ...item, cardPaymentDone: done, cardPaymentAmount: payment.amount, updatedAt: Date.now() };
+            const next = db.map(x => x === item ? updated : x);
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+            catch(e) { showToast('결제 상태를 저장하지 못했습니다. 저장 공간을 확인해 주세요.'); return; }
+            db = next;
+            render();
+            if (document.getElementById('daily-modal-container')) window.updateDailyModalContent(selectedDate);
+            showToast(done ? '결제 완료로 표시했습니다.' : '결제 미완료로 표시했습니다.');
+        };
+
+        window.refreshCardPaymentEditor = () => {
+            const panel = document.getElementById('f-card-payment-panel');
+            const checkbox = document.getElementById('f-card-payment-done');
+            if (!panel || !checkbox) return;
+            const payment = getCardPayment(document.getElementById('f-note')?.value);
+            const amountKey = payment ? String(payment.amount) : '';
+            if (checkbox.dataset.amount !== amountKey) checkbox.checked = false;
+            checkbox.dataset.amount = amountKey;
+            panel.hidden = !payment;
+            if (payment) document.getElementById('f-card-payment-label').textContent = payment.label + ' · 결제 완료';
+        };
+
         function renderItemCard(item, showDate = false, cumulativeSum = null, forceAlwaysShow = false) {
             const note = cleanText(item.note); const supp = cleanText(item.supplier); const dept = cleanText(item.departure); const arrv = cleanText(item.arrival);
             const shouldHide = !forceAlwaysShow && !showAmounts;
@@ -312,6 +368,7 @@
                         <i data-lucide="chevron-right" class="w-5 h-5 text-dim opacity-60"></i>
                     </div>
                     <p class="font-black text-[17px] text-important leading-[1.15] mb-2">${note || '일정 기록'}</p>
+                    ${renderCardPayment(item)}
                     ${(dept || arrv) ? `<div class="bg-sub p-3 rounded-xl mb-2 text-[15.5px] font-bold flex items-center gap-2 text-important border border-custom"><span>${dept || '..'}</span> <i data-lucide="arrow-right" class="w-4 h-4 opacity-80" style="color: var(--brand-color)"></i> <span>${arrv || '..'}</span></div>` : ''}
                     <div class="flex justify-between items-end text-[15px] mt-1">
                         <span class="text-dim font-medium">${supp || ''} ${item.people > 0 ? '(인원:'+item.people+'명)' : ''}</span>
@@ -357,7 +414,7 @@
                     const weekIndex = Math.floor((start + d - 1) / 7);
                     gridHtml += `<div onclick="handleDateTouch('${dStr}');" class="memo-cell ${isT?'is-today':''} ${selectedDate===dStr?'is-selected':''}" >
                         <div class="flex flex-col items-center justify-start shrink-0 w-full min-h-[36px]"><div class="date-num ${dCls}">${d}</div>${holHtml}</div>
-                        <div class="flex-1 overflow-hidden mt-0.5" style="padding-left:2.5px;padding-right:2.5px;">${items.map(it => `<div class="memo-strip" style="${it.color ? `background:color-mix(in srgb, ${it.color} 28%, transparent);` : ''}">${smartTimeFormat(it.time)} ${cleanText(it.supplier, it.note.substring(0,5))}</div>`).join('')}</div>
+                        <div class="flex-1 overflow-hidden mt-0.5" style="padding-left:2.5px;padding-right:2.5px;">${items.map(it => `<div class="memo-strip" style="${it.color ? `background:color-mix(in srgb, ${it.color} 28%, transparent);` : ''}">${getCardPayment(it.note) ? (isCardPaymentDone(it) ? '✓ ' : '□ ') : ''}${smartTimeFormat(it.time)} ${cleanText(it.supplier, (it.note || '').substring(0,5))}</div>`).join('')}</div>
                     </div>`;
                     const isWeekEnd = ((start + d) % 7 === 0) || d === last;
                     if (selectedDay && weekIndex === selectedWeek && isWeekEnd) {
@@ -370,7 +427,7 @@
                                 const title = cleanText(it.note, cleanText(it.supplier, '일정'));
                                 const details = [cleanText(it.supplier), cleanText(it.departure), cleanText(it.arrival), Number(it.people) > 0 ? Number(it.people)+'명' : ''].filter(Boolean).join(' · ');
                                 const amountHtml = showAmounts && Number(it.amount) !== 0 ? `<span class="daily-inline-amount">${formatKRW(Number(it.amount))}원</span>` : '';
-                                return `<div class="daily-inline-item${it.color ? ' has-color' : ''}"${it.color ? ` style="--item-color:${it.color}"` : ''} onclick="event.stopPropagation(); openEntryModal('${it.id}')"><span class="daily-inline-time">${smartTimeFormat(it.time) || '시간없음'}</span><span class="daily-inline-text">${title}${details ? `<span class="daily-inline-detail">${details}</span>` : ''}</span>${amountHtml}</div>`;
+                                return `<div class="daily-inline-item${it.color ? ' has-color' : ''}"${it.color ? ` style="--item-color:${it.color}"` : ''} onclick="event.stopPropagation(); openEntryModal('${it.id}')"><span class="daily-inline-time">${smartTimeFormat(it.time) || '시간없음'}</span><span class="daily-inline-text">${title}${details ? `<span class="daily-inline-detail">${details}</span>` : ''}${renderCardPayment(it)}</span>${amountHtml}</div>`;
                             }).join('') : '<div class="daily-inline-empty">등록된 일정이 없습니다.</div>'}
                         </div>`;
                     }
@@ -753,7 +810,8 @@
 
         window.saveDraft = () => {
             const fDateEl = document.getElementById('f-date');
-            if(!fDateEl) return; 
+            if(!fDateEl) return;
+            window.refreshCardPaymentEditor();
             const draft = {
                 isOpen: true,
                 id: currentEditId,
@@ -765,7 +823,9 @@
                 supplier: document.getElementById('f-supplier')?.value || '',
                 amount: document.getElementById('f-amount-display')?.value || '',
                 note: document.getElementById('f-note')?.value || '',
-                color: document.getElementById('f-color')?.value || ''
+                color: document.getElementById('f-color')?.value || '',
+                cardPaymentDone: document.getElementById('f-card-payment-done')?.checked === true,
+                cardPaymentAmount: Number(document.getElementById('f-card-payment-done')?.dataset.amount || 0)
             };
             localStorage.setItem('logrit_draft_data', JSON.stringify(draft));
         };
@@ -1083,6 +1143,12 @@
                         </div>
                         
                         <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
+                        <div id="f-card-payment-panel" hidden>
+                            <label class="card-payment-status w-full gap-3">
+                                <input type="checkbox" id="f-card-payment-done" class="w-5 h-5" onchange="window.saveDraft()">
+                                <span id="f-card-payment-label"></span>
+                            </label>
+                        </div>
                         <div class="px-1 pt-1">
                             <div class="text-[12px] font-bold text-dim mb-2">일정 색상</div>
                             <div id="record-color-picker" class="grid grid-cols-7 gap-x-1 gap-y-2">
@@ -1113,10 +1179,15 @@
             document.getElementById('f-amount-display').value = draftData ? draftData.amount : (it ? (it.amount ? Number(it.amount).toLocaleString() : '') : '');
             document.getElementById('f-note').value = draftData ? draftData.note : (it ? (it.note==='내용없음'||it.note==='내용 없음'?'':it.note) : '');
 
+            const paymentSeed = draftData || it || {};
+            const paymentCheckbox = document.getElementById('f-card-payment-done');
+            paymentCheckbox.dataset.amount = String(paymentSeed.cardPaymentAmount || '');
+            paymentCheckbox.checked = paymentSeed.cardPaymentDone === true;
+            window.refreshCardPaymentEditor();
             if (window.lucide) lucide.createIcons();
         };
 
-        window.startCopy = () => { currentEditId = null; document.getElementById('delete-btn')?.remove(); event.currentTarget.remove(); localStorage.removeItem('logrit_draft_data'); showToast("복사 완료! 다른 날짜에 저장하세요."); };
+        window.startCopy = () => { currentEditId = null; document.getElementById('f-card-payment-done').checked = false; document.getElementById('delete-btn')?.remove(); event.currentTarget.remove(); localStorage.removeItem('logrit_draft_data'); window.saveDraft(); showToast("복사 완료! 다른 날짜에 저장하세요."); };
         window.saveRecord = (e) => { 
             e.preventDefault(); 
             let rawStr = document.getElementById('f-amount-display').value;
@@ -1125,6 +1196,8 @@
             let finalAmount = parseInt(rawNum || 0);
             if(isMinus) finalAmount = -finalAmount;
 
+            window.refreshCardPaymentEditor();
+            const payment = getCardPayment(document.getElementById('f-note').value);
             const record = { 
                 id: currentEditId || String(Date.now()), 
                 date: document.getElementById('f-date').value, 
@@ -1136,6 +1209,8 @@
                 arrival: document.getElementById('f-arrival').value, 
                 people: parseInt(document.getElementById('f-people').value || 0), 
                 color: document.getElementById('f-color')?.value || '', 
+                cardPaymentDone: !!payment && document.getElementById('f-card-payment-done').checked,
+                cardPaymentAmount: payment ? payment.amount : 0,
                 updatedAt: Date.now() 
             }; 
             if(currentEditId) db = db.map(x => String(x.id) === currentEditId ? record : x); else db.push(record); 
