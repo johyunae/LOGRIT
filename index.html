@@ -974,7 +974,21 @@
                 const i=lines.findIndex(v=>/^\d{1,2}\s*(?:명|pax|persons?|people)$/i.test(v));
                 if(i>=0){people=lines[i].match(/\d+/)[0];markIndex(i);}
             }
+            // 이름 뒤 +N은 동반 N명으로 해석하여 본인 포함 총 N+1명.
+            if(!people) {
+                const companion=text.match(/(?:^|\n)\s*(?:mr|mrs|ms|miss|dr)\.?\s+[^\n]*?\s*\+\s*(\d{1,2})(?=\s|$)/i);
+                if(companion) people=String(Number(companion[1])+1);
+            }
             if(people) people=(people.match(/\d+/)||[])[0]||'';
+            // 시간 라벨이 없더라도 단독 HHMM, HMM, HH:MM 표기를 인식.
+            if(!time) {
+                const standalone=lines.findIndex(v=>/^(?:[01]?\d|2[0-3])[:：][0-5]\d$/.test(v) || /^\d{3,4}$/.test(v) && !/^(20\d{2})$/.test(v));
+                if(standalone>=0) {
+                    const digits=lines[standalone].replace(/[:：]/g,'').padStart(4,'0');
+                    const h=Number(digits.slice(0,2)), m=Number(digits.slice(2));
+                    if(h<24 && m<60) {time=digits.slice(0,2)+':'+digits.slice(2);markIndex(standalone);}
+                }
+            }
             if(!departure) departure=lines.find(v=>hotelPattern.test(v))||'';
             if(!arrival) arrival=lines.find(v=>airportPattern.test(v))||'';
             // 공항으로 가면 도착지는 편명만, 공항에서 출발하면 출발지는 편명만.
