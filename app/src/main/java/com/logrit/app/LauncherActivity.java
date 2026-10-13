@@ -1,17 +1,30 @@
 package com.logrit.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.graphics.Insets;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.WindowInsets;
 import android.window.OnBackInvokedDispatcher;
 import android.webkit.WebChromeClient;
+import android.webkit.JsResult;
+import android.webkit.JsPromptResult;
+import android.webkit.ValueCallback;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.Toast;
+import android.widget.EditText;
+
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
@@ -26,6 +39,10 @@ public class LauncherActivity extends Activity {
 
     private WebView webView;
     private AdView adView;
+    private ValueCallback<Uri[]> fileChooserCallback;
+    private byte[] pendingBackup;
+    private static final int OPEN_FILE = 1001;
+    private static final int SAVE_BACKUP = 1002;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,8 +82,63 @@ public class LauncherActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
-        webView.setWebViewClient(new WebViewClient());
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
+                if (url.startsWith("data:text/json") || url.startsWith("data:application/json")) {
+                    saveBackup(url);
+                    return true;
+                }
+                return false;
+            }
+        });
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
+                    FileChooserParams params) {
+                if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
+                fileChooserCallback = callback;
+                try {
+                    startActivityForResult(params.createIntent(), OPEN_FILE);
+                } catch (ActivityNotFoundException e) {
+                    fileChooserCallback.onReceiveValue(null);
+                    fileChooserCallback = null;
+                    Toast.makeText(LauncherActivity.this, "파일 선택 앱을 찾을 수 없습니다.", Toast.LENGTH_LONG).show();
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+                new AlertDialog.Builder(LauncherActivity.this).setMessage(message)
+                        .setPositiveButton("확인", (dialog, which) -> result.confirm())
+                        .setOnCancelListener(dialog -> result.cancel()).show();
+                return true;
+            }
+
+            @Override
+            public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+                new AlertDialog.Builder(LauncherActivity.this).setMessage(message)
+                        .setPositiveButton("확인", (dialog, which) -> result.confirm())
+                        .setNegativeButton("취소", (dialog, which) -> result.cancel())
+                        .setOnCancelListener(dialog -> result.cancel()).show();
+                return true;
+            }
+
+            @Override
+            public boolean onJsPrompt(WebView view, String url, String message,
+                    String defaultValue, JsPromptResult result) {
+                EditText input = new EditText(LauncherActivity.this);
+                input.setText(defaultValue);
+                new AlertDialog.Builder(LauncherActivity.this).setMessage(message).setView(input)
+                        .setPositiveButton("확인", (dialog, which) -> result.confirm(input.getText().toString()))
+                        .setNegativeButton("취소", (dialog, which) -> result.cancel())
+                        .setOnCancelListener(dialog -> result.cancel()).show();
+                return true;
+            }
+        });
+        webView.setDownloadListener((url, userAgent, disposition, mimeType, length) -> saveBackup(url));
         webView.loadUrl(APP_URL);
 
         MobileAds.initialize(this, initializationStatus -> runOnUiThread(() -> {
@@ -94,8 +166,47 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    private void saveBackup(String url) {
+        if (pendingBackup != null) return;
+        if (!url.startsWith("data:text/json;charset=utf-8,")
+                && !url.startsWith("data:application/json;charset=utf-8,")) return;
+        pendingBackup = Uri.decode(url.substring(url.indexOf(',') + 1))
+                .getBytes(StandardCharsets.UTF_8);
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE).setType("application/json")
+                .putExtra(Intent.EXTRA_TITLE, "logrit_backup.json");
+        try {
+            startActivityForResult(intent, SAVE_BACKUP);
+        } catch (ActivityNotFoundException e) {
+            pendingBackup = null;
+            Toast.makeText(this, "파일 저장 앱을 찾을 수 없습니다.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == OPEN_FILE && fileChooserCallback != null) {
+            fileChooserCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
+            fileChooserCallback = null;
+        } else if (requestCode == SAVE_BACKUP) {
+            byte[] backup = pendingBackup;
+            pendingBackup = null;
+            if (resultCode == RESULT_OK && data != null && data.getData() != null && backup != null) {
+                try (OutputStream output = getContentResolver().openOutputStream(data.getData())) {
+                    if (output == null) throw new java.io.IOException("Unable to open backup file");
+                    output.write(backup);
+                    Toast.makeText(this, "백업 파일을 저장했습니다.", Toast.LENGTH_LONG).show();
+                } catch (java.io.IOException e) {
+                    Toast.makeText(this, "백업 저장에 실패했습니다. 다시 시도해주세요.", Toast.LENGTH_LONG).show();
+                }
+            }
+        }
+    }
+
     @Override
     protected void onDestroy() {
+        if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
         if (adView != null) adView.destroy();
         if (webView != null) webView.destroy();
         super.onDestroy();
