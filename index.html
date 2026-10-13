@@ -62,6 +62,7 @@
         .border-custom { border-color: var(--border-color); }
 
         .card-payment-status { display:inline-flex; align-items:center; margin:2px 0 8px; padding:8px 10px; border:1px solid var(--brand-color); border-radius:10px; color:var(--brand-color); background:var(--sub-bg); font-size:12px; font-weight:800; line-height:1.35; cursor:pointer; text-align:left; }
+        .card-payment-status[hidden] { display:none; }
         .card-payment-status.is-paid { color:#22c55e; border-color:#22c55e; }
         body.light-mode .card-payment-status.is-paid { color:#15803d; border-color:#15803d; }
         .fixed-header { position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 100; background-color: var(--nav-bg); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid var(--border-color); transition: 0.3s; }
@@ -306,9 +307,27 @@
             return { amount, label: '카드 ' + label };
         }
 
-        function isCardPaymentDone(item) {
+        function getRecordPayment(item) {
+            if (item.paymentCheckHidden === true) return null;
+            const custom = String(item.paymentCheckLabel || '').trim().slice(0, 80);
+            if (custom) return { amount: 0, label: custom, key: 'manual:' + custom };
             const payment = getCardPayment(item.note);
-            return !!payment && item.cardPaymentDone === true && Number(item.cardPaymentAmount) === payment.amount;
+            return payment ? { ...payment, key: 'card:' + payment.amount } : null;
+        }
+
+        function paymentEditorValues() {
+            return {
+                note: document.getElementById('f-note')?.value || '',
+                paymentCheckLabel: document.getElementById('f-payment-custom-label')?.value || '',
+                paymentCheckHidden: document.getElementById('f-payment-check-hidden')?.value === 'true'
+            };
+        }
+
+        function isCardPaymentDone(item) {
+            const payment = getRecordPayment(item);
+            if (!payment || item.cardPaymentDone !== true) return false;
+            if (item.paymentCheckKey) return item.paymentCheckKey === payment.key;
+            return payment.key.startsWith('card:') && Number(item.cardPaymentAmount) === payment.amount;
         }
 
         function paymentAttribute(value) {
@@ -316,18 +335,18 @@
         }
 
         function renderCardPayment(item) {
-            const payment = getCardPayment(item.note);
+            const payment = getRecordPayment(item);
             if (!payment) return '';
             const done = isCardPaymentDone(item);
-            return `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleCardPayment(this.dataset.paymentId)" aria-pressed="${done}" class="card-payment-status ${done ? 'is-paid' : ''}">${done ? '✓' : '□'} ${payment.label} · 결제 ${done ? '완료' : '미완료'}</button>`;
+            return `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleCardPayment(this.dataset.paymentId)" aria-pressed="${done}" class="card-payment-status ${done ? 'is-paid' : ''}">${done ? '✓' : '□'} ${paymentAttribute(payment.label)} · 결제 ${done ? '완료' : '미완료'}</button>`;
         }
 
         window.toggleCardPayment = (id) => {
             const item = db.find(x => String(x.id) === String(id));
-            const payment = item && getCardPayment(item.note);
+            const payment = item && getRecordPayment(item);
             if (!payment) return;
             const done = !isCardPaymentDone(item);
-            const updated = { ...item, cardPaymentDone: done, cardPaymentAmount: payment.amount, updatedAt: Date.now() };
+            const updated = { ...item, cardPaymentDone: done, cardPaymentAmount: payment.amount, paymentCheckKey: payment.key, updatedAt: Date.now() };
             const next = db.map(x => x === item ? updated : x);
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
             catch(e) { showToast('결제 상태를 저장하지 못했습니다. 저장 공간을 확인해 주세요.'); return; }
@@ -341,12 +360,32 @@
             const panel = document.getElementById('f-card-payment-panel');
             const checkbox = document.getElementById('f-card-payment-done');
             if (!panel || !checkbox) return;
-            const payment = getCardPayment(document.getElementById('f-note')?.value);
-            const amountKey = payment ? String(payment.amount) : '';
-            if (checkbox.dataset.amount !== amountKey) checkbox.checked = false;
-            checkbox.dataset.amount = amountKey;
+            const payment = getRecordPayment(paymentEditorValues());
+            const key = payment ? payment.key : '';
+            if (checkbox.dataset.paymentKey !== key) checkbox.checked = false;
+            checkbox.dataset.paymentKey = key;
+            checkbox.dataset.amount = payment ? String(payment.amount) : '';
             panel.hidden = !payment;
+            document.getElementById('f-payment-add').hidden = !!payment;
             if (payment) document.getElementById('f-card-payment-label').textContent = payment.label + ' · 결제 완료';
+        };
+
+        window.editPaymentCheck = () => {
+            const current = getRecordPayment(paymentEditorValues());
+            const fallback = String(document.getElementById('f-note')?.value || '').split('\n')[0].trim().slice(0, 80);
+            const value = prompt('결제 확인에 표시할 문구를 입력하세요. (예: 캐13)', current ? current.label : fallback);
+            if (value === null) return;
+            const label = String(value).trim().slice(0, 80);
+            if (!label) { showToast('표시할 문구를 입력해 주세요.'); return; }
+            document.getElementById('f-payment-custom-label').value = label;
+            document.getElementById('f-payment-check-hidden').value = 'false';
+            window.saveDraft();
+        };
+
+        window.removePaymentCheck = () => {
+            document.getElementById('f-payment-custom-label').value = '';
+            document.getElementById('f-payment-check-hidden').value = 'true';
+            window.saveDraft();
         };
 
         function renderItemCard(item, showDate = false, cumulativeSum = null, forceAlwaysShow = false) {
@@ -414,7 +453,7 @@
                     const weekIndex = Math.floor((start + d - 1) / 7);
                     gridHtml += `<div onclick="handleDateTouch('${dStr}');" class="memo-cell ${isT?'is-today':''} ${selectedDate===dStr?'is-selected':''}" >
                         <div class="flex flex-col items-center justify-start shrink-0 w-full min-h-[36px]"><div class="date-num ${dCls}">${d}</div>${holHtml}</div>
-                        <div class="flex-1 overflow-hidden mt-0.5" style="padding-left:2.5px;padding-right:2.5px;">${items.map(it => `<div class="memo-strip" style="${it.color ? `background:color-mix(in srgb, ${it.color} 28%, transparent);` : ''}">${getCardPayment(it.note) ? (isCardPaymentDone(it) ? '✓ ' : '□ ') : ''}${smartTimeFormat(it.time)} ${cleanText(it.supplier, (it.note || '').substring(0,5))}</div>`).join('')}</div>
+                        <div class="flex-1 overflow-hidden mt-0.5" style="padding-left:2.5px;padding-right:2.5px;">${items.map(it => `<div class="memo-strip" style="${it.color ? `background:color-mix(in srgb, ${it.color} 28%, transparent);` : ''}">${getRecordPayment(it) ? (isCardPaymentDone(it) ? '✓ ' : '□ ') : ''}${smartTimeFormat(it.time)} ${cleanText(it.supplier, (it.note || '').substring(0,5))}</div>`).join('')}</div>
                     </div>`;
                     const isWeekEnd = ((start + d) % 7 === 0) || d === last;
                     if (selectedDay && weekIndex === selectedWeek && isWeekEnd) {
@@ -825,7 +864,10 @@
                 note: document.getElementById('f-note')?.value || '',
                 color: document.getElementById('f-color')?.value || '',
                 cardPaymentDone: document.getElementById('f-card-payment-done')?.checked === true,
-                cardPaymentAmount: Number(document.getElementById('f-card-payment-done')?.dataset.amount || 0)
+                cardPaymentAmount: Number(document.getElementById('f-card-payment-done')?.dataset.amount || 0),
+                paymentCheckKey: document.getElementById('f-card-payment-done')?.dataset.paymentKey || '',
+                paymentCheckLabel: document.getElementById('f-payment-custom-label')?.value || '',
+                paymentCheckHidden: document.getElementById('f-payment-check-hidden')?.value === 'true'
             };
             localStorage.setItem('logrit_draft_data', JSON.stringify(draft));
         };
@@ -1143,11 +1185,18 @@
                         </div>
                         
                         <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
+                        <input type="hidden" id="f-payment-custom-label">
+                        <input type="hidden" id="f-payment-check-hidden" value="false">
+                        <button type="button" id="f-payment-add" onclick="window.editPaymentCheck()" class="card-payment-status">＋ 결제 확인 표시 추가</button>
                         <div id="f-card-payment-panel" hidden>
                             <label class="card-payment-status w-full gap-3">
                                 <input type="checkbox" id="f-card-payment-done" class="w-5 h-5" onchange="window.saveDraft()">
                                 <span id="f-card-payment-label"></span>
                             </label>
+                            <div class="flex gap-4 mb-2 text-[12px] text-dim">
+                                <button type="button" onclick="window.editPaymentCheck()">문구 수정</button>
+                                <button type="button" onclick="window.removePaymentCheck()">표시 삭제</button>
+                            </div>
                         </div>
                         <div class="px-1 pt-1">
                             <div class="text-[12px] font-bold text-dim mb-2">일정 색상</div>
@@ -1181,7 +1230,10 @@
 
             const paymentSeed = draftData || it || {};
             const paymentCheckbox = document.getElementById('f-card-payment-done');
+            document.getElementById('f-payment-custom-label').value = paymentSeed.paymentCheckLabel || '';
+            document.getElementById('f-payment-check-hidden').value = paymentSeed.paymentCheckHidden === true ? 'true' : 'false';
             paymentCheckbox.dataset.amount = String(paymentSeed.cardPaymentAmount || '');
+            paymentCheckbox.dataset.paymentKey = paymentSeed.paymentCheckKey || (paymentSeed.cardPaymentAmount ? 'card:' + paymentSeed.cardPaymentAmount : '');
             paymentCheckbox.checked = paymentSeed.cardPaymentDone === true;
             window.refreshCardPaymentEditor();
             if (window.lucide) lucide.createIcons();
@@ -1197,7 +1249,8 @@
             if(isMinus) finalAmount = -finalAmount;
 
             window.refreshCardPaymentEditor();
-            const payment = getCardPayment(document.getElementById('f-note').value);
+            const paymentFields = paymentEditorValues();
+            const payment = getRecordPayment(paymentFields);
             const record = { 
                 id: currentEditId || String(Date.now()), 
                 date: document.getElementById('f-date').value, 
@@ -1211,6 +1264,9 @@
                 color: document.getElementById('f-color')?.value || '', 
                 cardPaymentDone: !!payment && document.getElementById('f-card-payment-done').checked,
                 cardPaymentAmount: payment ? payment.amount : 0,
+                paymentCheckKey: payment ? payment.key : '',
+                paymentCheckLabel: paymentFields.paymentCheckLabel,
+                paymentCheckHidden: paymentFields.paymentCheckHidden,
                 updatedAt: Date.now() 
             }; 
             if(currentEditId) db = db.map(x => String(x.id) === currentEditId ? record : x); else db.push(record); 
