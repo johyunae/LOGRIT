@@ -54,8 +54,8 @@ public class LauncherActivity extends Activity {
             adView = new AdView(this);
             adView.setAdUnitId(BANNER_AD_UNIT_ID);
             adView.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
-                    this, getResources().getDisplayMetrics().widthPixels /
-                            getResources().getDisplayMetrics().density));
+                    this, Math.round(getResources().getDisplayMetrics().widthPixels /
+                            getResources().getDisplayMetrics().density)));
             adContainer.addView(adView);
             adView.loadAd(new AdRequest.Builder().build());
         });
