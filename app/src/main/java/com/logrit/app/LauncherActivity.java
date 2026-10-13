@@ -16,7 +16,9 @@ import com.google.android.gms.ads.MobileAds;
 
 public class LauncherActivity extends Activity {
     private static final String APP_URL = "https://johyunae.github.io/LOGRIT/";
-    private static final String BANNER_AD_UNIT_ID = "ca-app-pub-4817798220289653/7853351468";
+    private static final String BANNER_AD_UNIT_ID = BuildConfig.DEBUG
+            ? "ca-app-pub-3940256099942544/9214589741"
+            : "ca-app-pub-4817798220289653/7853351468";
 
     private WebView webView;
     private AdView adView;
@@ -50,7 +52,8 @@ public class LauncherActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient());
         webView.loadUrl(APP_URL);
 
-        MobileAds.initialize(this, initializationStatus -> {
+        MobileAds.initialize(this, initializationStatus -> runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
             adView = new AdView(this);
             adView.setAdUnitId(BANNER_AD_UNIT_ID);
             adView.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(
@@ -58,7 +61,7 @@ public class LauncherActivity extends Activity {
                             getResources().getDisplayMetrics().density)));
             adContainer.addView(adView);
             adView.loadAd(new AdRequest.Builder().build());
-        });
+        }));
     }
 
     @Override
