@@ -49,6 +49,10 @@ public class LauncherActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         LinearLayout root = new LinearLayout(this);
+        // These padded areas remain visible behind transparent system bars on Android 15+.
+        // Resolve day/night resources so the phone's dark mode controls their background.
+        int systemBarBackground = getColor(R.color.system_bar_background);
+        root.setBackgroundColor(systemBarBackground);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -60,6 +64,7 @@ public class LauncherActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
         webView = new WebView(this);
+        webView.setBackgroundColor(systemBarBackground);
         root.addView(webView, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
 
