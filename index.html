@@ -532,7 +532,7 @@
             const payment = getRecordPayment(item);
             if (!payment) return '';
             const done = isCardPaymentDone(item);
-            return `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleCardPayment(this.dataset.paymentId)" aria-pressed="${done}" class="card-payment-status ${done ? 'is-paid' : ''}">${done ? '✓' : '□'} ${paymentAttribute(payment.label)} · 결제 ${done ? '완료' : '미완료'}</button>`;
+            return `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleCardPayment(this.dataset.paymentId)" aria-pressed="${done}" class="card-payment-status ${done ? 'is-paid' : ''}">${done ? '✓' : '□'} ${paymentAttribute(payment.label)} · ${done ? '완료' : '미완료'}</button>`;
         }
 
         window.toggleCardPayment = (id) => {
@@ -543,11 +543,11 @@
             const updated = { ...item, cardPaymentDone: done, cardPaymentAmount: payment.amount, paymentCheckKey: payment.key, updatedAt: Date.now() };
             const next = db.map(x => x === item ? updated : x);
             try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
-            catch(e) { showToast('결제 상태를 저장하지 못했습니다. 저장 공간을 확인해 주세요.'); return; }
+            catch(e) { showToast('완료 상태를 저장하지 못했습니다. 저장 공간을 확인해 주세요.'); return; }
             db = next;
             render();
             if (document.getElementById('daily-modal-container')) window.updateDailyModalContent(selectedDate);
-            showToast(done ? '결제 완료로 표시했습니다.' : '결제 미완료로 표시했습니다.');
+            showToast(done ? '완료로 표시했습니다.' : '미완료로 표시했습니다.');
         };
 
         window.refreshCardPaymentEditor = () => {
@@ -561,12 +561,12 @@
             checkbox.dataset.amount = payment ? String(payment.amount) : '';
             panel.hidden = !payment;
             document.getElementById('f-payment-add').hidden = !!payment;
-            if (payment) document.getElementById('f-card-payment-label').textContent = payment.label + ' · 결제 완료';
+            if (payment) document.getElementById('f-card-payment-label').textContent = payment.label + ' · 완료';
         };
 
         window.editPaymentCheck = () => {
             const current = getRecordPayment(paymentEditorValues());
-            const value = prompt('결제 확인에 표시할 문구를 입력하세요. (예: 캐13)', current ? current.label : '');
+            const value = prompt('완료 확인에 표시할 문구를 입력하세요. (예: 캐13)', current ? current.label : '');
             if (value === null) return;
             const label = String(value).trim().slice(0, 80);
             if (!label) { showToast('표시할 문구를 입력해 주세요.'); return; }
@@ -1439,7 +1439,7 @@
                         
                         <input type="hidden" id="f-payment-custom-label">
                         <input type="hidden" id="f-payment-check-hidden" value="false">
-                        <button type="button" id="f-payment-add" onclick="window.editPaymentCheck()" class="card-payment-status">＋ 결제 확인 표시 추가</button>
+                        <button type="button" id="f-payment-add" onclick="window.editPaymentCheck()" class="card-payment-status">＋ 완료 확인 표시 추가</button>
                         <div id="f-card-payment-panel" hidden>
                             <label class="card-payment-status w-full gap-3">
                                 <input type="checkbox" id="f-card-payment-done" class="w-5 h-5" onchange="window.saveDraft()">
