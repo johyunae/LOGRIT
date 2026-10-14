@@ -1111,20 +1111,37 @@
             if(timeIndex>=0) markIndex(timeIndex);
             const flightPattern=/\b(?:KE|OZ|TW|BX|LJ|7C|RS|ZE|JL|NH|CA|MU|CZ|VN|TG|SQ|CX|PR|CI|BR)\s*[- ]?\s*\d{2,5}\b/i;
             const airportPattern=/airport|공항|국제|국내/i;
-            const hotelPattern=/noblesse|노블레스|deokpo|덕포/i;
+            const hotelPattern=/hotel|호텔|noblesse|노블레스|deokpo|덕포/i;
             const flightIndex=lines.findIndex(v=>flightPattern.test(v));
             const flight=flightIndex>=0 ? lines[flightIndex].match(flightPattern)[0].replace(/\s*[- ]\s*/,' ').trim() : '';
+            // 메시지에 화살표로 적힌 경로는 표의 다음 줄을 추측하는 방식보다 먼저 읽는다.
+            for (let i=0; i<lines.length; i++) {
+                const route=lines[i].match(/(.+?)\s*(?:-{1,2}>|→|⇒|➡|➜)\s*(.+)/);
+                if (!route) continue;
+                let from=route[1].trim()
+                    .replace(/^(?:(?:20\d{2})\s*(?:년|[.\/-])\s*)?\d{1,2}\s*(?:월|[.\/-])\s*\d{1,2}\s*일?\s*/, '')
+                    .replace(/^\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[-\s]20\d{2})?\s*/i, '')
+                    .replace(/^(?:[01]?\d|2[0-3])[:：][0-5]\d\s*/, '')
+                    .replace(/^(?:출발지?|픽업|from|pickup)\s*[:：]?\s*/i, '').trim();
+                const to=route[2].replace(/^(?:도착지?|드롭|to|destination)\s*[:：]?\s*/i, '').replace(/[.!。]+$/, '').trim();
+                if (from && to) {
+                    if (!departure) departure=from;
+                    if (!arrival) arrival=to;
+                    markIndex(i); break;
+                }
+            }
+            const isRequestLine=v=>/안녕하세요|감사합니다|부탁|알려드|비행편은|\bplease\b|\bthank(?:s|\s+you)\b/i.test(v);
             // 예약 표: 날짜 / 요일 / 픽업시간 / 인원 / 손님 / 출발 / 도착 / 편명 / 항공시간.
             let name='';
-            if(timeIndex>=0) {
+            if(timeIndex>=0 && /^(?:[01]?\d|2[0-3])[:：][0-5]\d$/.test(lines[timeIndex])) {
                 let p=timeIndex+1;
                 while(p<lines.length && /^(mon|tue|wed|thu|fri|sat|sun)$/i.test(lines[p])) p++;
                 if(!people && p<lines.length && /^\d{1,2}$/.test(lines[p])) {people=lines[p];markIndex(p);p++;}
-                if(p<lines.length && /^(?:(?:mr|mrs|ms|miss|dr)\.?\s+)?[a-z가-힣][\w가-힣 .'-]*(?:\s*\+\s*\d+)?$/i.test(lines[p]) && !airportPattern.test(lines[p]) && !hotelPattern.test(lines[p])) {
+                if(p<lines.length && /^(?:(?:mr|mrs|ms|miss|dr)\.?\s+)?[a-z가-힣][\w가-힣 .'-]*(?:\s*\+\s*\d+)?$/i.test(lines[p]) && !airportPattern.test(lines[p]) && !hotelPattern.test(lines[p]) && !isRequestLine(lines[p])) {
                     name=lines[p].replace(/\s*\+\s*(\d+)$/,' +$1');markIndex(p);p++;
                 }
-                if(!departure && p<lines.length && !airportPattern.test(lines[p]) && !flightPattern.test(lines[p])) {departure=lines[p];markIndex(p);p++;}
-                if(!arrival && p<lines.length && airportPattern.test(lines[p])) {arrival=lines[p];markIndex(p);}
+                if(!departure && p<lines.length && !flightPattern.test(lines[p]) && !isRequestLine(lines[p])) {departure=lines[p];markIndex(p);p++;}
+                if(!arrival && p<lines.length && !flightPattern.test(lines[p]) && !isRequestLine(lines[p])) {arrival=lines[p];markIndex(p);}
             }
             if(!people) {
                 const i=lines.findIndex(v=>/^\d{1,2}\s*(?:명|pax|persons?|people)$/i.test(v));
@@ -1145,14 +1162,17 @@
                     if(h<24 && m<60) {time=digits.slice(0,2)+':'+digits.slice(2);markIndex(standalone);}
                 }
             }
-            if(!departure) departure=lines.find(v=>hotelPattern.test(v))||'';
-            if(!arrival) arrival=lines.find(v=>airportPattern.test(v))||'';
+            if(!departure) { const i=lines.findIndex(v=>hotelPattern.test(v) && !isRequestLine(v)); if(i>=0) {departure=lines[i];markIndex(i);} }
+            if(!arrival) { const i=lines.findIndex(v=>airportPattern.test(v) && !isRequestLine(v)); if(i>=0) {arrival=lines[i];markIndex(i);} }
             // 공항으로 가면 도착지는 편명만, 공항에서 출발하면 출발지는 편명만.
             if(flight && airportPattern.test(arrival)) arrival=flight;
             else if(flight && airportPattern.test(departure)) departure=flight;
             const customerName=name || lines.find(v=>/^(?:mr|mrs|ms|miss|dr)\.?\s+/i.test(v)) || '';
             const remark=imageRemark || findLabel('메모','비고','remarks?','note');
-            const note=[customerName,remark].filter(Boolean).join('\n');
+            if (flightIndex>=0 && (arrival===flight || departure===flight)) markIndex(flightIndex);
+            const dateOnly=/^(?:(?:20\d{2})\s*[.\/-]\s*)?\d{1,2}\s*(?:월|[.\/-])\s*\d{1,2}\s*일?$|^\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[-\s]20\d{2})?$|^(?:mon|tue|wed|thu|fri|sat|sun)$/i;
+            const remaining=lines.filter((line,i)=>!used.has(i) && line!==customerName && !dateOnly.test(line) && !/^(?:[01]?\d|2[0-3])[:：][0-5]\d$/.test(line) && !/^(?:안녕하세요|감사합니다|hello|thank\s+you|thanks)[\s,.!。]*$/i.test(line));
+            const note=[...new Set([customerName,remark,...remaining].filter(Boolean))].join('\n');
             set('f-date',date);set('f-departure',departure);set('f-arrival',arrival);
             set('f-time',time);set('f-people',people);set('f-supplier',supplier);set('f-amount-display',amount);
             const noteEl=document.getElementById('f-note');if(noteEl)noteEl.value=note;
@@ -1476,6 +1496,7 @@
     </script>
 </body>
 </html>
+
 
 
 
