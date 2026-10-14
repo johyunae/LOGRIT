@@ -933,7 +933,7 @@
         };
 
 
-        window.parseAutoInputText = (raw) => {
+        window.parseAutoInputText = (raw, imageRemark = '') => {
             const text = String(raw || '').replace(/\r/g, '').replace(/\\n/g, '\n').trim();
             if (!text) { showToast('붙여넣을 내용이 없습니다.'); return; }
             const lines = text.split('\n').map(v => v.trim()).filter(Boolean);
@@ -1011,7 +1011,9 @@
             // 공항으로 가면 도착지는 편명만, 공항에서 출발하면 출발지는 편명만.
             if(flight && airportPattern.test(arrival)) arrival=flight;
             else if(flight && airportPattern.test(departure)) departure=flight;
-            const note=name || lines.find(v=>/^(?:mr|mrs|ms|miss|dr)\.?\s+/i.test(v)) || '';
+            const customerName=name || lines.find(v=>/^(?:mr|mrs|ms|miss|dr)\.?\s+/i.test(v)) || '';
+            const remark=imageRemark || findLabel('메모','비고','remarks?','note');
+            const note=[customerName,remark].filter(Boolean).join('\n');
             set('f-date',date);set('f-departure',departure);set('f-arrival',arrival);
             set('f-time',time);set('f-people',people);set('f-supplier',supplier);set('f-amount-display',amount);
             const noteEl=document.getElementById('f-note');if(noteEl)noteEl.value=note;
@@ -1034,6 +1036,7 @@
         window.handleAutoInputImage = async (e) => {
             const file=e.target.files?.[0]; if(!file) return; const status=document.getElementById('auto-image-status');
             let ocrWorker=null;
+            let imageRemark='';
             if(!window.Tesseract){ if(status) status.textContent='이미지 읽기 기능을 불러오지 못했습니다.'; return; }
             try {
                 if(status) status.textContent='이미지 글자를 읽는 중...';
@@ -1080,7 +1083,7 @@
                     const row=cols.map((_,i)=>val(i));
                     // 작은 예약표의 숫자와 여러 줄 장소명은 칸을 확대해서 다시 읽는다.
                     if(img.width/img.height>3 && row.filter(Boolean).length>=4){
-                        for(const ci of [0,2,3,4,5,6,7]){
+                        for(const ci of [0,2,3,4,5,6,7,10]){
                             const left=Math.round(cuts[ci]*img.width)+2;
                             const right=Math.min(img.width,Math.round(cuts[ci+1]*img.width))-2;
                             const top=Math.max(2,Math.ceil(headerBottom)+2);
@@ -1099,6 +1102,18 @@
                             });
                             if(status) status.textContent='예약표 항목 확인 중...';
                             let input=crop;
+                            // 빨간 안내 글자도 검은 글자로 바꿔 작은 한글을 선명하게 읽는다.
+                            if(ci===10){
+                                const imageData=ctx.getImageData(0,0,crop.width,crop.height);
+                                const pixels=imageData.data;
+                                for(let p=0;p<pixels.length;p+=4){
+                                    const isRed=pixels[p]>110 && pixels[p]>pixels[p+1]*1.5 && pixels[p]>pixels[p+2]*1.4;
+                                    const isDark=Math.max(pixels[p],pixels[p+1],pixels[p+2])<160;
+                                    const value=isRed || isDark ? 0 : 255;
+                                    pixels[p]=pixels[p+1]=pixels[p+2]=value;
+                                }
+                                ctx.putImageData(imageData,0,0);
+                            }
                             if(ci===2 || ci===3){
                                 const pixels=ctx.getImageData(0,0,crop.width,crop.height).data;
                                 let x0=crop.width,y0=crop.height,x1=-1,y1=-1;
@@ -1121,6 +1136,7 @@
                             if(value) row[ci]=value;
                         }
                     }
+                    imageRemark=(row[10]||'').trim();
                     if(row.filter(Boolean).length>=6){
                         const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
                         let date=''; const dm=row[0].match(/(\d{1,2})[-\s](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[-\s](20\d{2}))?/i);
@@ -1136,15 +1152,16 @@
                         const departure = fromAirport ? flight : row[5];
                         const arrival = toAirport ? flight : row[6];
                         set('f-departure',departure); set('f-arrival',arrival);
-                        // 고객 이름만 메모에 남긴다. 기사 연락처와 빨간색 안내 문구는 제외.
+                        // 고객 이름과 REMARK 안내 문구를 메모에 함께 기록한다.
                         const note=document.getElementById('f-note');
-                        if(note) note.value=(row[4]||'').replace(/\\n/g,' ').replace(/\s+/g,' ').replace(/\s*\+\s*(\d+)$/,' +$1').trim();
+                        const customerName=(row[4]||'').replace(/\\n/g,' ').replace(/\s+/g,' ').replace(/\s*\+\s*(\d+)$/,' +$1').trim();
+                        if(note) note.value=[customerName,imageRemark].filter(Boolean).join('\n');
                         document.getElementById('auto-input-modal')?.remove(); window.saveDraft();
                         showToast('표의 각 칸을 구분해 자동 입력했습니다. 내용을 확인해 주세요.');
                         return;
                     }
                 }
-                window.parseAutoInputText(text);
+                window.parseAutoInputText(text,imageRemark);
             } catch(err){console.error(err);if(status)status.textContent='이미지를 읽지 못했습니다. 다른 이미지로 다시 시도해 주세요.';}
             finally { if(ocrWorker) await ocrWorker.terminate(); }
         };
