@@ -1057,7 +1057,19 @@
                     sampleCtx.drawImage(img,0,0);
                     const cols=Array.from({length:12},()=>[]);
                     const headers=words.filter(w=>/^(?:DATE|DAY|TIME|PAX|NO|NAME|FROM|TO|FLIGHT|FLT|DRIVER|INFO|REMARK|담당자)$/i.test((w.text||'').trim()));
-                    const headerBottom=headers.length>=4 ? Math.max(...headers.map(w=>(w.bbox||w.boundingBox)?.y1 ?? (w.bbox||w.boundingBox)?.bottom ?? 0)) : -1;
+                    let headerBottom=headers.length>=4 ? Math.max(...headers.map(w=>(w.bbox||w.boundingBox)?.y1 ?? (w.bbox||w.boundingBox)?.bottom ?? 0)) : -1;
+                    // 표 머리글 아래 가로선을 찾아 머리글이 날짜·편명 OCR에 섞이지 않게 한다.
+                    if(img.width/img.height>3){
+                        const pixels=sampleCtx.getImageData(0,0,img.width,Math.ceil(img.height*.35)).data;
+                        for(let y=5;y<Math.ceil(img.height*.35);y++){
+                            let dark=0;
+                            for(let x=0;x<img.width;x++){
+                                const p=(y*img.width+x)*4;
+                                if(Math.max(pixels[p],pixels[p+1],pixels[p+2])<100)dark++;
+                            }
+                            if(dark>img.width*.85){headerBottom=Math.max(headerBottom,y);break;}
+                        }
+                    }
                     const cuts=[0,.0523,.1012,.161,.21,.345,.473,.610,.658,.724,.830,.921,1.01];
                     for(const w of words){
                         const b=w.bbox||w.boundingBox; if(!b) continue;
@@ -1097,8 +1109,10 @@
                             ctx.fillStyle='#fff';ctx.fillRect(0,0,crop.width,crop.height);
                             ctx.drawImage(img,left,top,right-left,height,24,24,(right-left)*scale,height*scale);
                             await ocrWorker.setParameters({
-                                tessedit_pageseg_mode:'6',
-                                tessedit_char_whitelist:ci===2 ? '0123456789:：' : (ci===3 ? '0123456789' : '')
+                                tessedit_pageseg_mode:ci===0 || ci===7 ? '7' : '6',
+                                tessedit_char_whitelist:ci===0 ? '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-/. ' :
+                                    ci===7 ? '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ ' :
+                                    ci===2 ? '0123456789:：' : (ci===3 ? '0123456789' : '')
                             });
                             if(status) status.textContent='예약표 항목 확인 중...';
                             let input=crop;
@@ -1114,7 +1128,7 @@
                                 }
                                 ctx.putImageData(imageData,0,0);
                             }
-                            if(ci===2 || ci===3){
+                            if(ci===0 || ci===2 || ci===3 || ci===7){
                                 const pixels=ctx.getImageData(0,0,crop.width,crop.height).data;
                                 let x0=crop.width,y0=crop.height,x1=-1,y1=-1;
                                 for(let y=0;y<crop.height;y++) for(let x=0;x<crop.width;x++){
@@ -1139,25 +1153,40 @@
                     imageRemark=(row[10]||'').trim();
                     if(row.filter(Boolean).length>=6){
                         const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
-                        let date=''; const dm=row[0].match(/(\d{1,2})[-\s](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[-\s](20\d{2}))?/i);
+                        let date=''; const dm=row[0].replace(/[–—−]/g,'-').match(/\b(\d{1,2})\s*[-/.]?\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[a-z]*)(?:[\s-]+(20\d{2}))?\b/i);
                         if(dm){const base=document.getElementById('f-date')?.value||getLocalToday();date=(dm[3]||base.slice(0,4))+'-'+months[dm[2].toLowerCase()]+'-'+String(dm[1]).padStart(2,'0');}
                         const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
-                        set('f-date',date); set('f-time',(row[2].match(/([0-2]?\d[:：]\d{2})/)||[])[1]?.replace('：',':'));
+                        if(date){
+                            const [year,month,day]=date.split('-').map(Number);
+                            const check=new Date(year,month-1,day);
+                            if(check.getFullYear()!==year || check.getMonth()!==month-1 || check.getDate()!==day)date='';
+                        }
+                        // 인식에 실패한 날짜는 오늘 날짜로 남겨 두지 않는다.
+                        const dateInput=document.getElementById('f-date');
+                        if(dateInput)dateInput.value=date;
+                        set('f-time',(row[2].match(/([0-2]?\d[:：]\d{2})/)||[])[1]?.replace('：',':'));
                         set('f-people',(row[3].match(/\d+/)||[])[0]);
                         // 예약표의 고객 이름은 거래처가 아니라 메모에 기록한다.
                         const airport = v => /(?:busan\s*)?(?:international\s*airport|airport)|김해|국제공항|공항/i.test(v||'');
-                        const flight = (row[7]||'').replace(/\s+/g,' ').trim();
+                        const flightText=(row[7]||'').replace(/\s+/g,'').toUpperCase();
+                        const flight=/^(?:[A-Z][A-Z0-9]|[0-9][A-Z])\d{2,5}$/.test(flightText) ? flightText : '';
                         const fromAirport = airport(row[5]);
                         const toAirport = airport(row[6]);
                         const departure = fromAirport ? flight : row[5];
                         const arrival = toAirport ? flight : row[6];
-                        set('f-departure',departure); set('f-arrival',arrival);
+                        const departureInput=document.getElementById('f-departure');
+                        const arrivalInput=document.getElementById('f-arrival');
+                        if(departureInput)departureInput.value=departure;
+                        if(arrivalInput)arrivalInput.value=arrival;
                         // 고객 이름과 REMARK 안내 문구를 메모에 함께 기록한다.
                         const note=document.getElementById('f-note');
                         const customerName=(row[4]||'').replace(/\\n/g,' ').replace(/\s+/g,' ').replace(/\s*\+\s*(\d+)$/,' +$1').trim();
                         if(note) note.value=[customerName,imageRemark].filter(Boolean).join('\n');
                         document.getElementById('auto-input-modal')?.remove(); window.saveDraft();
-                        showToast('표의 각 칸을 구분해 자동 입력했습니다. 내용을 확인해 주세요.');
+                        const unread=[];
+                        if(!date)unread.push('날짜');
+                        if((fromAirport || toAirport) && !flight)unread.push('편명');
+                        showToast(unread.length ? unread.join('·')+'을 읽지 못했습니다. 빈칸을 확인해 주세요.' : '표의 각 칸을 구분해 자동 입력했습니다. 내용을 확인해 주세요.');
                         return;
                     }
                 }
