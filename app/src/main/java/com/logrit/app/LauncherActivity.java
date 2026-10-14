@@ -86,6 +86,7 @@ public class LauncherActivity extends Activity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
+        settings.setUserAgentString(settings.getUserAgentString() + " LOGRIT-Android/" + BuildConfig.VERSION_CODE);
         settings.setMediaPlaybackRequiresUserGesture(false);
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -144,7 +145,7 @@ public class LauncherActivity extends Activity {
             }
         });
         webView.setDownloadListener((url, userAgent, disposition, mimeType, length) -> saveBackup(url));
-        webView.loadUrl(APP_URL);
+        webView.loadUrl(getLaunchUrl(getIntent()));
 
         MobileAds.initialize(this, initializationStatus -> runOnUiThread(() -> {
             if (isFinishing() || isDestroyed()) return;
@@ -156,6 +157,24 @@ public class LauncherActivity extends Activity {
             adContainer.addView(adView);
             adView.loadAd(new AdRequest.Builder().build());
         }));
+    }
+
+    private String getLaunchUrl(Intent intent) {
+        Uri data = intent == null ? null : intent.getData();
+        if (data != null && "logrit".equals(data.getScheme()) && "import".equals(data.getHost())) {
+            String payload = data.getQueryParameter("data");
+            if (payload != null && payload.length() <= 16000 && payload.matches("[A-Za-z0-9_-]+")) {
+                return APP_URL + "#logrit-import=" + payload;
+            }
+        }
+        return APP_URL;
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (webView != null) webView.loadUrl(getLaunchUrl(intent));
     }
 
     @Override
