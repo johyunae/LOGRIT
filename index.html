@@ -1121,13 +1121,13 @@
         window.parseAutoInputText = (raw, imageRemark = '') => {
             const text = String(raw || '').replace(/\r/g, '').replace(/\\n/g, '\n').trim();
             if (!text) { showToast('붙여넣을 내용이 없습니다.'); return; }
-            const lines = text.split('\n').map(v => v.trim()).filter(Boolean);
+            const lines = text.split('\n').map(v => v.trim().replace(/^[.．•·●]+\s*(?=\S)/, '')).filter(Boolean);
             const used = new Set();
             const set = (id, value) => { const el = document.getElementById(id); if (el && value !== '' && value != null) el.value = value; };
             const markIndex = i => { if(i >= 0) used.add(i); };
             const findLabel = (...labels) => {
                 for(let i=0;i<lines.length;i++) for(const label of labels) {
-                    const m=lines[i].match(new RegExp('^\\s*(?:'+label+')\\s*[:：-]\\s*(.+)$','i'));
+                    const m=lines[i].match(new RegExp('^\\s*(?:'+label+')\\s*[:：~～-]\\s*(.+)$','i'));
                     if(m) { used.add(i); return m[1].trim(); }
                 }
                 return '';
@@ -1145,9 +1145,9 @@
             }
             let time=findLabel('시간','픽업시간','미팅시간','time','pickup\\s*time');
             let people=findLabel('인원','인원수','people','pax','passengers');
-            let departure=findLabel('출발지','출발','픽업','pickup','from');
-            let arrival=findLabel('도착지','도착','드롭','drop(?:off)?','destination','to');
-            const supplier=findLabel('거래처','거래처명','업체','client','company','agency');
+            let departure=findLabel('출발지','출발','출','픽업','pickup','from');
+            let arrival=findLabel('도착지','도착','도','드롭','drop(?:off)?','destination','to');
+            const supplier=findLabel('거래처','거래처명','회사명','회사','업체','client','company','agency');
             let amount=findLabel('금액','매출','요금','amount','price','fare');
             if(amount) amount=amount.replace(/[^0-9-]/g,'');
             const timePattern=/\b([01]?\d|2[0-3])[:：](\d{2})\b/;
