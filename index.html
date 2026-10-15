@@ -247,27 +247,51 @@
         };
         window.addEventListener('hashchange', () => { if (logritImportLinksReady) window.consumeLogritImportLink(); });
 
-        window.onload = async () => { 
+        let logritScreenReady = false, logritFilePickerActive = false;
+        function openLogritStartScreen() {
+            if (window.consumeLogritImportLink()) return;
+            try {
+                const draft = JSON.parse(localStorage.getItem('logrit_draft_data') || 'null');
+                if (draft && draft.isOpen) {
+                    openEntryModal(draft.id, null, draft);
+                    showToast('작성 중이던 내용을 복구했습니다.');
+                    return;
+                }
+            } catch(error) { console.error('Draft recovery failed:', error); }
+            window.goToToday();
+        }
+        window.onload = async () => {
             try {
                 try { await loadCalendarPhotoIndex(); } catch(error) { console.error('Calendar photo loading failed:', error); }
-                applyTheme(); 
-                render(); 
-                if (window.lucide) lucide.createIcons(); 
-                
+                applyTheme();
+                render();
+                if (window.lucide) lucide.createIcons();
                 logritImportLinksReady = true;
-                if (window.consumeLogritImportLink()) return;
-                // 임시저장 내용 띄우기
-                const draftStr = localStorage.getItem('logrit_draft_data');
-                if (draftStr) {
-                    const draft = JSON.parse(draftStr);
-                    if (draft && draft.isOpen) {
-                        openEntryModal(draft.id, null, draft);
-                        showToast("작성 중이던 내용을 복구했습니다.");
-                    }
-                }
-            } catch(e) { console.error(e); }
+                openLogritStartScreen();
+                logritScreenReady = true;
+            } catch(error) { console.error(error); }
         };
-        
+        // File pickers also background the Android WebView; keep their current screen.
+        document.addEventListener('click', event => {
+            if (event.target?.matches?.('input[type="file"]')) logritFilePickerActive = true;
+        }, true);
+        for (const eventName of ['change', 'cancel']) document.addEventListener(eventName, event => {
+            if (event.target?.matches?.('input[type="file"]')) setTimeout(() => { logritFilePickerActive = false; }, 0);
+        }, true);
+        document.addEventListener('visibilitychange', () => {
+            if (!logritScreenReady) return;
+            if (document.hidden) {
+                if (document.getElementById('modal-container')) {
+                    try { window.saveDraft(); } catch(error) { console.error('Draft saving failed:', error); }
+                }
+                return;
+            }
+            if (logritFilePickerActive) { logritFilePickerActive = false; return; }
+            if (document.querySelector('#modal-container, #auto-input-modal, #import-modal, #calendar-photo-viewer')) return;
+            document.getElementById('daily-modal-container')?.remove();
+            window.goToToday();
+        });
+
         let calendarPhotoIndex = [], calendarPhotoTargetDate = null, calendarPhotoBusy = false;
         let calendarPhotoDbPromise = null, calendarPhotoObjectUrl = null;
         function calendarPhotoDb() {
