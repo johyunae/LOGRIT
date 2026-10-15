@@ -375,6 +375,7 @@
         };
         function validCalendarPhotoData(value) { return typeof value === 'string' && value.length <= 8 * 1024 * 1024 && /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value); }
         async function applyLogritBackup(parsed) {
+            if (parsed?.format === 'logrit-schedule-backup') return restoreSingleSchedule(parsed);
             const legacy = Array.isArray(parsed);
             const records = legacy ? parsed : parsed?.records;
             if (!Array.isArray(records) || (!legacy && (parsed.format !== 'logrit-backup' || parsed.version !== 2 || !Array.isArray(parsed.calendarPhotos)))) throw new Error('Invalid backup');
@@ -392,6 +393,7 @@
             db = records;
             if (!legacy) await loadCalendarPhotoIndex();
             render();
+            return '로그릿 데이터 복원이 완료되었습니다.';
         }
         window.resetLogritData = async () => {
             if (!confirm('정말 모든 기록과 달력 사진을 완전히 삭제할까요? 되돌릴 수 없습니다.')) return;
@@ -798,6 +800,68 @@
             if (window.lucide) lucide.createIcons();
         }
 
+        function validateSingleScheduleBackup(payload) {
+            if (!payload || payload.format !== 'logrit-schedule-backup' || payload.version !== 1 ||
+                !Array.isArray(payload.records) || payload.records.length !== 1) throw new Error('Invalid schedule backup');
+            const source = payload.records[0];
+            if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('Invalid schedule');
+            const record = {};
+            const strings = { id: 100, date: 10, time: 5, supplier: 10000, note: 100000, departure: 10000,
+                arrival: 10000, color: 30, importLinkId: 100, paymentCheckKey: 10000, paymentCheckLabel: 10000 };
+            for (const [key, max] of Object.entries(strings)) {
+                if (source[key] === undefined) continue;
+                if (typeof source[key] !== 'string' || source[key].length > max) throw new Error('Invalid schedule field');
+                record[key] = source[key];
+            }
+            if (!record.id || !/^[A-Za-z0-9_-]+$/.test(record.id)) throw new Error('Invalid schedule id');
+            const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(record.date || '');
+            if (!date || Number(date[1]) < 1900 || Number(date[1]) > 2100) throw new Error('Invalid schedule date');
+            const actual = new Date(Number(date[1]), Number(date[2]) - 1, Number(date[3]));
+            if (actual.getFullYear() !== Number(date[1]) || actual.getMonth() !== Number(date[2])-1 || actual.getDate() !== Number(date[3])) throw new Error('Invalid schedule date');
+            if (record.time && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(record.time)) throw new Error('Invalid schedule time');
+            if (record.color && !/^#[0-9a-f]{6}$/i.test(record.color)) throw new Error('Invalid schedule color');
+            for (const key of ['amount', 'people', 'cardPaymentAmount', 'updatedAt']) {
+                if (source[key] === undefined) continue;
+                if (typeof source[key] !== 'number' || !Number.isSafeInteger(source[key]) || (key !== 'amount' && source[key] < 0)) throw new Error('Invalid schedule number');
+                record[key] = source[key];
+            }
+            for (const key of ['cardPaymentDone', 'paymentCheckHidden']) {
+                if (source[key] === undefined) continue;
+                if (typeof source[key] !== 'boolean') throw new Error('Invalid schedule status');
+                record[key] = source[key];
+            }
+            return record;
+        }
+        function restoreSingleSchedule(payload) {
+            const record = validateSingleScheduleBackup(payload);
+            const sameContent = item => Object.keys(record).filter(key => key !== 'id' && key !== 'updatedAt')
+                .every(key => item[key] === record[key]);
+            if (db.some(sameContent)) return '이미 같은 스케줄이 있어 중복으로 추가하지 않았습니다.';
+            if (!confirm(record.date + ' 스케줄 1개를 추가할까요? 기존 일정은 그대로 유지됩니다.')) return null;
+            if (db.some(item => String(item.id) === record.id)) {
+                do { record.id = 'restored_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10); }
+                while (db.some(item => String(item.id) === record.id));
+            }
+            const next = [...db, record];
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+            db = next;
+            render();
+            return '스케줄 1개를 복원했습니다. 기존 일정은 그대로입니다.';
+        }
+        window.exportSingleSchedule = () => {
+            const record = db.find(item => String(item.id) === String(currentEditId));
+            if (!record || currentEditId === null) { showToast('먼저 스케줄을 저장해 주세요.'); return; }
+            try {
+                const payload = { format: 'logrit-schedule-backup', version: 1, exportedAt: new Date().toISOString(), records: [record] };
+                validateSingleScheduleBackup(payload);
+                const link = document.createElement('a');
+                link.setAttribute('href', 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload)));
+                link.setAttribute('download', 'logrit_schedule_' + record.date + '_' + record.id + '.json');
+                document.body.appendChild(link); link.click(); link.remove();
+                showToast('스케줄 1개 백업 파일의 저장을 요청했습니다.');
+            } catch(error) { showToast('백업하지 못했습니다. 일정의 날짜와 시간을 확인해 주세요.'); }
+        };
+
         window.exportLogritData = async () => {
             if(db.length === 0 && calendarPhotoIndex.length === 0) { showToast("저장할 데이터가 없습니다."); return; }
             try {
@@ -811,10 +875,11 @@
         };
         window.restoreLogritData = (event) => {
             const file = event.target.files[0];
+            event.target.value = '';
             if (!file) return;
             const reader = new FileReader();
             reader.onload = async (result) => {
-                try { await applyLogritBackup(JSON.parse(result.target.result)); showToast('로그릿 데이터 복원이 완료되었습니다.'); navTo('e_cal'); }
+                try { const message = await applyLogritBackup(JSON.parse(result.target.result)); if (message) { showToast(message); navTo('e_cal'); } }
                 catch(error) { console.error(error); showToast('복원하지 못했습니다. 백업 파일과 저장 공간을 확인해 주세요.'); }
             };
             reader.onerror = () => showToast('백업 파일을 읽지 못했습니다.');
@@ -1461,6 +1526,7 @@
                             <input type="hidden" id="f-import-link-id">
                         </div>
                     </div>
+                    ${id ? `<div id="single-schedule-backup" class="mt-6"><button type="button" onclick="window.exportSingleSchedule()" class="w-full btn-copy py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2"><i data-lucide="download" class="w-5 h-5"></i> 이 스케줄만 백업</button><p class="text-[12px] text-dim text-center mt-2">저장된 내용만 백업합니다. 수정 중이면 먼저 저장해 주세요.</p></div>` : ''}
                     <div id="form-actions" class="flex gap-3 mt-8">
                         ${id ? `<button type="button" onclick="window.deleteItemDirect('${id}')" id="delete-btn" class="flex-1 btn-del py-4.5 rounded-2xl font-bold text-center text-[15px]">삭제 Del</button>` : ''}
                         ${id ? `<button type="button" onclick="window.startCopy()" class="flex-1 btn-copy py-4.5 rounded-2xl font-bold text-center text-[15px]">복사 Copy</button>` : ''}
@@ -1494,7 +1560,7 @@
             if (window.lucide) lucide.createIcons();
         };
 
-        window.startCopy = () => { currentEditId = null; document.getElementById('f-import-link-id').value = ''; document.getElementById('f-card-payment-done').checked = false; document.getElementById('delete-btn')?.remove(); event.currentTarget.remove(); localStorage.removeItem('logrit_draft_data'); window.saveDraft(); showToast("복사 완료! 다른 날짜에 저장하세요."); };
+        window.startCopy = () => { currentEditId = null; document.getElementById('f-import-link-id').value = ''; document.getElementById('f-card-payment-done').checked = false; document.getElementById('delete-btn')?.remove(); document.getElementById('single-schedule-backup')?.remove(); event.currentTarget.remove(); localStorage.removeItem('logrit_draft_data'); window.saveDraft(); showToast("복사 완료! 다른 날짜에 저장하세요."); };
         window.saveRecord = (e) => { 
             e.preventDefault(); 
             let rawStr = document.getElementById('f-amount-display').value;
