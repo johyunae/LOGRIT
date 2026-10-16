@@ -141,6 +141,16 @@
         .mb-6 { margin-bottom: 1.25rem !important; }
         .mb-4 { margin-bottom: 0.85rem !important; }
 
+    
+        /* Compact record list; retain date/time size and all memo content. */
+        #record-list-content .record-card { padding:10px 12px; margin-bottom:6px; border-radius:14px; }
+        #record-list-content .record-card-head { padding-bottom:5px; margin-bottom:5px; }
+        #record-list-content .record-card-note { font-size:14px; line-height:1.1; font-weight:600; margin-bottom:5px; overflow-wrap:anywhere; }
+        #record-list-content .record-card-route { padding:6px 8px; margin-bottom:5px; border-radius:8px; font-size:13px; gap:5px; }
+        #record-list-content .record-card-foot { font-size:12px; margin-top:2px; gap:6px; flex-wrap:wrap; }
+        #record-list-content .record-card-amount { font-size:16px; }
+        #record-list-content .card-payment-status { font-size:14px; padding:5px 8px; margin-bottom:5px; }
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -620,17 +630,17 @@
                 }
             }
             return `
-                <div onclick="openEntryModal('${item.id}')" class="bg-card p-4 rounded-[1.5rem] mb-2 border border-custom shadow-md text-left active:opacity-60 transition-all cursor-pointer" style="${item.color ? `border-left:6px solid ${item.color}` : ''}">
-                    <div class="flex justify-between items-center border-b border-custom pb-2 mb-2">
+                <div onclick="openEntryModal('${item.id}')" class="record-card bg-card p-4 rounded-[1.5rem] mb-2 border border-custom shadow-md text-left active:opacity-60 transition-all cursor-pointer" style="${item.color ? `border-left:6px solid ${item.color}` : ''}">
+                    <div class="record-card-head flex justify-between items-center border-b border-custom pb-2 mb-2">
                         <span class="font-extrabold text-[18px] uppercase tracking-wide" style="color: var(--brand-color)">${showDate ? item.date+' ' : ''}${smartTimeFormat(item.time)}</span>
                         <i data-lucide="chevron-right" class="w-5 h-5 text-dim opacity-60"></i>
                     </div>
                     ${renderCardPayment(item)}
-                    <p class="font-black text-[17px] text-important leading-[1.15] mb-2">${note || '일정 기록'}</p>
-                    ${(dept || arrv) ? `<div class="bg-sub p-3 rounded-xl mb-2 text-[15.5px] font-bold flex items-center gap-2 text-important border border-custom"><span>${dept || '..'}</span> <i data-lucide="arrow-right" class="w-4 h-4 opacity-80" style="color: var(--brand-color)"></i> <span>${arrv || '..'}</span></div>` : ''}
-                    <div class="flex justify-between items-end text-[15px] mt-1">
+                    <p class="record-card-note font-black text-[17px] text-important leading-[1.15] mb-2">${note || '일정 기록'}</p>
+                    ${(dept || arrv) ? `<div class="record-card-route bg-sub p-3 rounded-xl mb-2 text-[15.5px] font-bold flex items-center gap-2 text-important border border-custom"><span>${dept || '..'}</span> <i data-lucide="arrow-right" class="w-4 h-4 opacity-80" style="color: var(--brand-color)"></i> <span>${arrv || '..'}</span></div>` : ''}
+                    <div class="record-card-foot flex justify-between items-end text-[15px] mt-1">
                         <span class="text-dim font-medium">${supp || ''} ${item.people > 0 ? '(인원:'+item.people+'명)' : ''}</span>
-                        <b class="text-important text-[20px] font-black tracking-tighter">${priceDisplay}</b>
+                        <b class="record-card-amount text-important text-[20px] font-black tracking-tighter">${priceDisplay}</b>
                     </div>
                 </div>`;
         }
