@@ -8,8 +8,8 @@ android {
         applicationId 'com.logrit.app'
         minSdk 24
         targetSdk 36
-        versionCode 9
-        versionName '1.0.0.8'
+        versionCode 10
+        versionName '1.0.0.9'
         resValue 'string', 'app_name', 'LOGRIT'
     }
 
@@ -29,4 +29,6 @@ android {
 dependencies {
     implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
     implementation 'com.google.android.gms:play-services-ads:24.6.0'
+    // Override the obsolete transitive Fragment 1.1.0 flagged by Play Console.
+    implementation 'androidx.fragment:fragment:1.8.9'
 }
