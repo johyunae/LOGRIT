@@ -147,8 +147,9 @@
         #record-list-content .record-card-head { padding-bottom:5px; margin-bottom:5px; }
         #record-list-content .record-card-note { font-size:14px; line-height:1.1; font-weight:600; margin-bottom:5px; overflow-wrap:anywhere; }
         #record-list-content .record-card-route { padding:6px 8px; margin-bottom:5px; border-radius:8px; font-size:13px; gap:5px; }
-        #record-list-content .record-card-foot { font-size:12px; margin-top:2px; gap:6px; flex-wrap:wrap; }
-        #record-list-content .record-card-amount { font-size:16px; }
+        #record-list-content .record-card-foot { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; font-size:11px; margin-top:2px; gap:8px; white-space:nowrap; }
+        #record-list-content .record-card-foot > span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+        #record-list-content .record-card-amount { font-size:13px; white-space:nowrap; }
         #record-list-content .card-payment-status { font-size:14px; padding:5px 8px; margin-bottom:5px; }
 
     </style>
