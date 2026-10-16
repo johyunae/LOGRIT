@@ -80,6 +80,9 @@
   }finally{busy=false;}
  }
  window.connectLogritAI=()=>{
+  const androidVersion=navigator.userAgent.match(/LOGRIT-Android\/(\d+)/);
+  if(androidVersion&&Number(androidVersion[1])<9){status('앱 업데이트가 필요합니다. 현재 앱은 연결 창을 지원하지 않습니다.');showToast('현재 앱은 연결 창을 지원하지 않아 앱 업데이트가 필요합니다. 기존 앱과 데이터는 그대로 두세요.');return;}
+
   if(location.origin!=='https://johyunae.github.io'){showToast('현재 앱의 연결 창 지원을 확인해야 합니다. 크롬의 기존 로그릿에서 먼저 연결해주세요.');return;}
   if(!confirm('이 로그릿의 일정 정보를 본인 전용 AI 서버와 연결할까요? 사진은 전송하지 않습니다. 기존 기록은 유지하고 동기화 전 사본을 보관합니다.'))return;
   channel=crypto.randomUUID();ready=false;enabled=true;
