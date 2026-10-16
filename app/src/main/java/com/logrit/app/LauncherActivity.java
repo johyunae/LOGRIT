@@ -8,6 +8,11 @@ import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Message;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TextView;
 import android.view.WindowInsets;
 import android.window.OnBackInvokedDispatcher;
 import android.webkit.WebChromeClient;
@@ -38,6 +43,9 @@ public class LauncherActivity extends Activity {
             : "ca-app-pub-4817798220289653/7853351468";
 
     private WebView webView;
+    private WebView connectionView;
+    private LinearLayout connectionPanel;
+    private LinearLayout appRoot;
     private AdView adView;
     private ValueCallback<Uri[]> fileChooserCallback;
     private byte[] pendingBackup;
@@ -49,6 +57,7 @@ public class LauncherActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         LinearLayout root = new LinearLayout(this);
+        appRoot = root;
         // These padded areas remain visible behind transparent system bars on Android 15+.
         // Resolve day/night resources so the phone's dark mode controls their background.
         int systemBarBackground = getColor(R.color.system_bar_background);
@@ -86,6 +95,7 @@ public class LauncherActivity extends Activity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
+        settings.setSupportMultipleWindows(true);
         settings.setUserAgentString(settings.getUserAgentString() + " LOGRIT-Android/" + BuildConfig.VERSION_CODE);
         settings.setMediaPlaybackRequiresUserGesture(false);
         webView.setWebViewClient(new WebViewClient() {
@@ -100,6 +110,65 @@ public class LauncherActivity extends Activity {
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onCreateWindow(WebView parent, boolean isDialog, boolean isUserGesture, Message message) {
+                Uri origin = Uri.parse(parent.getUrl() == null ? "" : parent.getUrl());
+                if (parent != webView || !isUserGesture || !"https".equals(origin.getScheme())
+                        || !"johyunae.github.io".equals(origin.getHost())
+                        || !origin.getPath().startsWith("/LOGRIT/")) return false;
+                closeConnectionWindow();
+                connectionPanel = new LinearLayout(LauncherActivity.this);
+                connectionPanel.setOrientation(LinearLayout.VERTICAL);
+                connectionPanel.setBackgroundColor(getColor(R.color.system_bar_background));
+                TextView address = new TextView(LauncherActivity.this);
+                address.setPadding(16, 12, 16, 12);
+                address.setText("로그릿 일정 연결");
+                connectionPanel.addView(address);
+                Button back = new Button(LauncherActivity.this);
+                back.setText("로그릿으로 돌아가기 · 연결 유지");
+                back.setOnClickListener(v -> hideConnectionWindow());
+                connectionPanel.addView(back);
+                connectionView = new WebView(LauncherActivity.this);
+                WebSettings childSettings = connectionView.getSettings();
+                childSettings.setJavaScriptEnabled(true);
+                childSettings.setDomStorageEnabled(true);
+                childSettings.setSupportMultipleWindows(true);
+                connectionView.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView child, WebResourceRequest request) {
+                        return !"https".equals(request.getUrl().getScheme());
+                    }
+                    @Override
+                    public void onPageFinished(WebView child, String url) {
+                        Uri uri = Uri.parse(url);
+                        address.setText(uri.getHost() == null ? "로그릿 일정 연결" : uri.getHost());
+                    }
+                });
+                connectionView.setWebChromeClient(this);
+                connectionPanel.addView(connectionView, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+                appRoot.addView(connectionPanel, new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+                webView.setVisibility(View.GONE);
+                WebView.WebViewTransport transport = (WebView.WebViewTransport) message.obj;
+                transport.setWebView(connectionView);
+                message.sendToTarget();
+                return true;
+            }
+
+            @Override
+            public void onCloseWindow(WebView child) {
+                if (child == connectionView) closeConnectionWindow();
+            }
+
+            @Override
+            public void onRequestFocus(WebView child) {
+                if (child == connectionView && connectionPanel != null) {
+                    webView.setVisibility(View.GONE);
+                    connectionPanel.setVisibility(View.VISIBLE);
+                }
+            }
+
             @Override
             public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback,
                     FileChooserParams params) {
@@ -183,11 +252,36 @@ public class LauncherActivity extends Activity {
     }
 
     private void navigateBack() {
+        if (connectionPanel != null && connectionPanel.getVisibility() == View.VISIBLE) {
+            if (connectionView != null && connectionView.canGoBack()) connectionView.goBack();
+            else hideConnectionWindow();
+            return;
+        }
         if (webView != null && webView.canGoBack()) {
             webView.goBack();
         } else {
             finish();
         }
+    }
+
+    private void hideConnectionWindow() {
+        if (connectionPanel != null) connectionPanel.setVisibility(View.GONE);
+        if (webView != null) {
+            webView.setVisibility(View.VISIBLE);
+            webView.evaluateJavascript("if(window.syncLogritAI) window.syncLogritAI();", null);
+        }
+    }
+
+    private void closeConnectionWindow() {
+        if (connectionPanel != null && appRoot != null) appRoot.removeView(connectionPanel);
+        if (connectionView != null) {
+            if (connectionView.getParent() instanceof ViewGroup)
+                ((ViewGroup) connectionView.getParent()).removeView(connectionView);
+            connectionView.destroy();
+        }
+        connectionView = null;
+        connectionPanel = null;
+        if (webView != null) webView.setVisibility(View.VISIBLE);
     }
 
     private void saveBackup(String url) {
@@ -231,6 +325,7 @@ public class LauncherActivity extends Activity {
     @Override
     protected void onDestroy() {
         if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
+        closeConnectionWindow();
         if (adView != null) adView.destroy();
         if (webView != null) webView.destroy();
         super.onDestroy();
