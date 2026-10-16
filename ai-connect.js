@@ -94,7 +94,13 @@
   for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('연결을 끊었습니다.'));}pending.clear();status('AI 연결 꺼짐 · 휴대폰에 저장');
   showToast('이 기기의 AI 연결을 껐습니다.');
  };
- window.syncLogritAI=()=>synchronize().catch(report);
+ window.syncLogritAI=()=>{
+  if(busy){showToast('일정을 동기화하고 있습니다. 잠시 기다려주세요.');return;}
+  if(!enabled||!bridge||bridge.closed){window.connectLogritAI();return;}
+  if(!ready){status('연결 창에서 내 일정 연결 허용을 눌러주세요.');showToast('열린 연결 창에서 내 일정 연결 허용을 먼저 눌러주세요.');try{bridge.focus();}catch{}return;}
+  status('일정 동기화 중…');showToast('일정을 동기화합니다.');
+  synchronize().catch(report);
+ };
  setInterval(()=>{if(enabled&&ready&&bridge&&!bridge.closed&&!document.hidden&&!document.getElementById('modal-container'))synchronize().catch(report)},20000);
  window.addEventListener('focus',()=>{if(enabled&&ready)synchronize().catch(report)});
 
