@@ -104,7 +104,18 @@
   status('일정 동기화 중…');showToast('일정을 동기화합니다.');
   synchronize().catch(report);
  };
- setInterval(()=>{if(enabled&&ready&&bridge&&!bridge.closed&&!document.hidden&&!document.getElementById('modal-container'))synchronize().catch(report)},20000);
+ // Never show a stale connection as active after the authorization window closes.
+ function checkConnection(){
+  if(!enabled)return;
+  if(!bridge||bridge.closed){
+   enabled=false;ready=false;bridge=null;
+   for(const p of pending.values()){clearTimeout(p.timer);p.reject(new Error('연결 창이 닫혔습니다.'));}pending.clear();
+   status('AI 연결 중단 · 휴대폰 일정은 유지됨 · 다시 연결하여 동기화');
+   return;
+  }
+  if(ready&&!document.hidden&&!document.getElementById('modal-container'))synchronize().catch(report);
+ }
+ setInterval(checkConnection,20000);
  window.addEventListener('focus',()=>{if(enabled&&ready)synchronize().catch(report)});
 
 })();
