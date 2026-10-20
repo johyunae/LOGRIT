@@ -51,6 +51,16 @@
             transition: background-color 0.3s, color 0.3s;
         }
         
+        /* Native date picker icon must remain visible in both themes. */
+        #f-date { color-scheme: dark; }
+        body.light-mode #f-date { color-scheme: light; }
+        #f-date::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 1;
+            filter: invert(1);
+        }
+        body.light-mode #f-date::-webkit-calendar-picker-indicator { filter: none; }
+
         .text-important { color: var(--text-bold) !important; }
         .text-dim { color: var(--text-main); }
         .bg-primary { background-color: var(--bg-color); }
