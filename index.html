@@ -89,6 +89,8 @@
         #memo-photo-list .calendar-photo-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:10px 0; }
         #memo-photo-list .calendar-photo-row button { width:100%; height:160px; background:var(--input-bg); border-radius:12px; }
         #memo-photo-list .calendar-photo-row img { object-fit:contain; }
+        #memo-photo-list .memo-photo-card { min-width:0; }
+        #memo-photo-list .calendar-photo-row .memo-photo-remove { height:44px; margin-top:6px; color:#f87171; border-color:#f87171; font-size:13px; font-weight:700; }
         .memo-photo-empty { display:block; width:100%; margin:10px 0; padding:24px 12px; border:1px dashed var(--brand-color); border-radius:12px; color:var(--text-main); background:var(--input-bg); font-size:13px; text-align:center; }
         .calendar-photo-add { color:var(--brand-color); font-size:13px; font-weight:800; padding:8px; border:1px solid var(--border-color); border-radius:10px; }
         .calendar-photo-viewer { position:fixed; inset:0; z-index:400; background:#101010; color:white; display:flex; flex-direction:column; gap:16px; padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); }
@@ -368,6 +370,14 @@
             if (!visible.length) return '';
             return `<div class="calendar-photo-row ${compact ? 'is-compact' : ''}">${visible.map((photo, i) => `<button type="button" data-photo-id="${paymentAttribute(photo.id)}" onclick="event.stopPropagation(); window.openCalendarPhoto(this.dataset.photoId)" aria-label="${date} 사진 ${i + 1} 크게 보기"><img src="${paymentAttribute(photo.thumbnail)}" alt="${date} 첨부 사진" loading="lazy">${compact && i === visible.length - 1 && photos.length > 2 ? `<span class="calendar-photo-count">+${photos.length - 2}</span>` : ''}</button>`).join('')}</div>`;
         }
+        function renderMemoPhotoCards(date) {
+            const photos = photosForDate(date);
+            if (!photos.length) return '';
+            return '<div class="calendar-photo-row">' + photos.map((photo, i) => {
+                const id = paymentAttribute(photo.id);
+                return `<div class="memo-photo-card"><button type="button" data-photo-id="${id}" onclick="window.openCalendarPhoto(this.dataset.photoId)" aria-label="첨부 사진 ${i + 1} 크게 보기"><img src="${paymentAttribute(photo.thumbnail)}" alt="첨부 사진 ${i + 1}" loading="lazy"></button><button type="button" class="memo-photo-remove" data-photo-id="${id}" onclick="window.deleteCalendarPhoto(this.dataset.photoId)" aria-label="첨부 사진 ${i + 1} 삭제">사진 삭제</button></div>`;
+            }).join('') + '</div>';
+        }
         window.refreshMemoPhotos = () => {
             const section = document.getElementById('memo-photo-section');
             if (!section) return;
@@ -375,7 +385,7 @@
             const button = document.getElementById('memo-photo-add');
             button.disabled = !/^\d{4}-\d{2}-\d{2}$/.test(date) || calendarPhotoBusy;
             document.getElementById('memo-photo-date').textContent = date ? date + ' 날짜에 저장되는 사진' : '사진을 추가하려면 날짜를 선택해 주세요.';
-            const preview = date ? renderCalendarPhotos(date) : '';
+            const preview = date ? renderMemoPhotoCards(date) : '';
             document.getElementById('memo-photo-list').innerHTML = preview || (date ? '<button type="button" class="memo-photo-empty" onclick="window.pickMemoPhotos()">＋ 사진을 추가하면 여기에 이미지가 표시됩니다</button>' : '');
 
         };
