@@ -388,6 +388,9 @@
             if (calendarPhotoBusy) return;
             calendarPhotoTargetDate = date;
             const input = document.getElementById('calendar-photo-input');
+            // Installed Android wrappers can lose ClipData-only multi-select results.
+            // Single selection returns a URI; repeated additions still keep every photo.
+            input.multiple = !/Android|LOGRIT-Android/i.test(navigator.userAgent || '');
             input.value = ''; input.click();
         };
         async function prepareCalendarPhoto(file, date) {
