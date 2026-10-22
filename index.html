@@ -364,6 +364,20 @@
             if (!visible.length) return '';
             return `<div class="calendar-photo-row ${compact ? 'is-compact' : ''}">${visible.map((photo, i) => `<button type="button" data-photo-id="${paymentAttribute(photo.id)}" onclick="event.stopPropagation(); window.openCalendarPhoto(this.dataset.photoId)" aria-label="${date} 사진 ${i + 1} 크게 보기"><img src="${paymentAttribute(photo.thumbnail)}" alt="${date} 첨부 사진" loading="lazy">${compact && i === visible.length - 1 && photos.length > 2 ? `<span class="calendar-photo-count">+${photos.length - 2}</span>` : ''}</button>`).join('')}</div>`;
         }
+        window.refreshMemoPhotos = () => {
+            const section = document.getElementById('memo-photo-section');
+            if (!section) return;
+            const date = document.getElementById('f-date')?.value || '';
+            const button = document.getElementById('memo-photo-add');
+            button.disabled = !/^\d{4}-\d{2}-\d{2}$/.test(date) || calendarPhotoBusy;
+            document.getElementById('memo-photo-date').textContent = date ? date + ' 날짜에 저장되는 사진' : '사진을 추가하려면 날짜를 선택해 주세요.';
+            document.getElementById('memo-photo-list').innerHTML = date ? renderCalendarPhotos(date) : '';
+        };
+        window.pickMemoPhotos = () => {
+            const date = document.getElementById('f-date')?.value;
+            if (!date) { showToast('날짜를 먼저 선택해 주세요.'); return; }
+            window.pickCalendarPhotos(date);
+        };
         window.pickCalendarPhotos = (date) => {
             if (calendarPhotoBusy) return;
             calendarPhotoTargetDate = date;
@@ -391,6 +405,7 @@
             const files = Array.from(event.target.files || []), date = calendarPhotoTargetDate;
             if (!files.length || !date || calendarPhotoBusy) return;
             calendarPhotoBusy = true;
+            window.refreshMemoPhotos();
             showToast('사진을 저장하고 있습니다.');
             try {
                 const rows = [];
@@ -399,7 +414,7 @@
                 if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
                 showToast('사진 ' + rows.length + '장을 달력에 추가했습니다.');
             } catch (error) { console.error(error); showToast(error.message?.startsWith('사진 한 장') || error.message?.startsWith('읽을 수 없는') ? error.message : '사진을 저장하지 못했습니다. 저장 공간을 확인해 주세요.'); }
-            finally { calendarPhotoBusy = false; event.target.value = ''; }
+            finally { calendarPhotoBusy = false; event.target.value = ''; window.refreshMemoPhotos(); }
         };
         window.closeCalendarPhoto = () => {
             document.getElementById('calendar-photo-viewer')?.remove();
@@ -424,7 +439,7 @@
         };
         window.deleteCalendarPhoto = async (id) => {
             if (!confirm('이 사진을 달력에서 삭제할까요?')) return;
-            try { await writeCalendarPhotos([], false, id); await loadCalendarPhotoIndex(); window.closeCalendarPhoto(); render(); showToast('사진을 삭제했습니다.'); }
+            try { await writeCalendarPhotos([], false, id); await loadCalendarPhotoIndex(); window.closeCalendarPhoto(); render(); window.refreshMemoPhotos(); showToast('사진을 삭제했습니다.'); }
             catch(error) { showToast('사진을 삭제하지 못했습니다.'); }
         };
         function validCalendarPhotoData(value) { return typeof value === 'string' && value.length <= 8 * 1024 * 1024 && /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value); }
@@ -1165,6 +1180,7 @@
         window.saveDraft = () => {
             const fDateEl = document.getElementById('f-date');
             if(!fDateEl) return;
+            window.refreshMemoPhotos();
             window.refreshCardPaymentEditor();
             const draft = {
                 isOpen: true,
@@ -1583,7 +1599,7 @@
                 <form id="record-form" onsubmit="window.saveRecord(event)" oninput="window.saveDraft()">
                     <button type="button" onclick="window.openAutoInputModal()" class="w-full btn-add py-3.5 rounded-2xl font-black mb-3 flex items-center justify-center gap-2"><i data-lucide="sparkles" class="w-5 h-5"></i> 카톡/이미지 자동 입력</button>
                     <div class="space-y-2">
-                        <input type="date" id="f-date" class="input-field" required>
+                        <input type="date" id="f-date" class="input-field" onchange="window.refreshMemoPhotos()" required>
                         <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
                             <input type="text" id="f-departure" placeholder="출발지 Departure" class="input-field">
                             <button type="button" onclick="window.swapRoute()" class="w-10 h-10 rounded-xl bg-sub border border-custom flex items-center justify-center active:scale-90 transition-transform cursor-pointer" aria-label="출발지 도착지 바꾸기"><i data-lucide="arrow-left-right" class="w-5 h-5"></i></button>
@@ -1614,6 +1630,14 @@
                             </div>
                         </div>
                         <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
+                        <section id="memo-photo-section" class="px-1 pt-2" aria-label="메모 아래 첨부 사진">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-[14px] font-bold text-important">첨부 사진</span>
+                                <button type="button" id="memo-photo-add" onclick="window.pickMemoPhotos()" class="calendar-photo-add disabled:opacity-40">＋ 사진 추가</button>
+                            </div>
+                            <p id="memo-photo-date" class="text-[12px] text-dim mt-1"></p>
+                            <div id="memo-photo-list" aria-live="polite"></div>
+                        </section>
                         <div class="px-1 pt-1">
                             <div class="text-[12px] font-bold text-dim mb-2">일정 색상</div>
                             <div id="record-color-picker" class="grid grid-cols-7 gap-x-1 gap-y-2">
@@ -1635,6 +1659,7 @@
             document.body.insertAdjacentHTML('beforeend', html); 
             
             document.getElementById('f-date').value = defaultDate;
+            window.refreshMemoPhotos();
             const initialColor = draftData ? (draftData.color || '') : (it ? (it.color || '') : '');
             document.getElementById('f-color').value = initialColor;
             window.selectRecordColor(initialColor, false);
