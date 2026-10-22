@@ -726,7 +726,7 @@
                         const dayNames = ['일','월','화','수','목','금','토'];
                         const dow = new Date(y, m, selectedDay).getDay();
                         gridHtml += `<div class="daily-inline">
-                            <div class="daily-inline-head"><span>${m+1}월 ${selectedDay}일 (${dayNames[dow]})</span><button type="button" onclick="window.pickCalendarPhotos('${selectedDate}')" class="calendar-photo-add">＋ 사진 추가</button></div>
+                            <div class="daily-inline-head"><span>${m+1}월 ${selectedDay}일 (${dayNames[dow]})</span></div>
                             ${renderCalendarPhotos(selectedDate)}
                             ${selectedItems.length ? selectedItems.map(it => {
                                 const title = paymentAttribute(cleanText(it.note, cleanText(it.supplier, '일정')));
