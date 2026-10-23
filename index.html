@@ -177,6 +177,11 @@
         #record-list-content .record-card-amount { font-size:13px; white-space:nowrap; }
         #record-list-content .card-payment-status { font-size:14px; padding:5px 8px; margin-bottom:5px; }
 
+        #search-color-filters { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; max-height:148px; overflow-y:auto; }
+        .search-color-filter { display:inline-flex; align-items:center; gap:6px; min-height:44px; max-width:100%; padding:6px 10px; border:1px solid var(--border-color); border-radius:12px; background:var(--sub-bg); color:var(--text-bold); font-size:13px; font-weight:700; cursor:pointer; overflow-wrap:anywhere; }
+        .search-color-filter.is-active { border-color:var(--brand-color); box-shadow:inset 0 0 0 1px var(--brand-color); }
+        .search-color-filter:focus-visible { outline:2px solid var(--brand-color); outline-offset:2px; }
+        .search-color-dot { width:16px; height:16px; border-radius:50%; flex-shrink:0; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -235,6 +240,7 @@
             showAmounts = s !== null ? JSON.parse(s) : true; 
         } catch(e) {}
         
+        let selectedSearchColors = new Set();
         let currentNav = 'e_cal', currentEditId = null, calContext = new Date(), selectedDate = null, searchTerm = "", filterMonth = null;
         let startX = 0, startY = 0;
         const monthNamesEn = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -500,7 +506,7 @@
         window.showToast = (msg) => { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2500); };
         window.toggleTheme = () => { isLightMode = !isLightMode; applyTheme(); render(); localStorage.setItem('theme_is_light', isLightMode); };
         
-        window.navTo = (nav) => { currentNav = nav; selectedDate = null; searchTerm = ""; filterMonth = null; render(); window.scrollTo(0,0); };
+        window.navTo = (nav) => { currentNav = nav; selectedDate = null; searchTerm = ""; selectedSearchColors.clear(); filterMonth = null; render(); window.scrollTo(0,0); };
         window.moveMonth = (v) => { calContext = new Date(calContext.getFullYear(), calContext.getMonth() + v, 1); selectedDate = null; render(); };
         window.searchCalendarMonth = (value) => {
             const raw = String(value || '').trim().replace(/년|월/g, '.').replace(/[-\/\s]+/g, '.');
@@ -698,13 +704,42 @@
                 </div>`;
         }
 
-        window.viewSupplierMonthly = (supplier) => { filterMonth = `${calContext.getFullYear()}-${String(calContext.getMonth()+1).padStart(2,'0')}`; searchTerm = supplier.toLowerCase(); currentNav = 'list'; render(); window.scrollTo(0,0); };
+        window.viewSupplierMonthly = (supplier) => { filterMonth = `${calContext.getFullYear()}-${String(calContext.getMonth()+1).padStart(2,'0')}`; searchTerm = supplier.toLowerCase(); selectedSearchColors.clear(); currentNav = 'list'; render(); window.scrollTo(0,0); };
+
+        // Resolve former palette values by position without changing saved schedules.
+        function searchColorKey(value) {
+            const color = String(value || '').trim().toLowerCase();
+            if (RECORD_COLORS.includes(color)) return color;
+            for (const palette of HISTORICAL_RECORD_COLOR_PALETTES) {
+                const index = palette.indexOf(color);
+                if (index >= 0) return RECORD_COLORS[index];
+            }
+            return color;
+        }
+        window.renderSearchColorFilters = () => {
+            const container = document.getElementById('search-color-filters');
+            if (!container) return;
+            const labels = window.getRecordColorLabels();
+            const choices = [['all', '전체'], ...RECORD_COLORS.map((color, i) => [color, labels[color] || `색상 ${i + 1}`]), ['', '색상 없음']];
+            container.innerHTML = choices.map(([color, label]) => {
+                const active = color === 'all' ? selectedSearchColors.size === 0 : selectedSearchColors.has(color);
+                return `<button type="button" onclick="window.toggleSearchColor('${color}')" aria-pressed="${active}" class="search-color-filter${active ? ' is-active' : ''}">${color && color !== 'all' ? `<span class="search-color-dot" style="background:${color}" aria-hidden="true"></span>` : ''}<span>${paymentAttribute(label)}</span>${active ? '<span aria-hidden="true">✓</span>' : ''}</button>`;
+            }).join('');
+        };
+        window.toggleSearchColor = (color) => {
+            if (color === 'all') selectedSearchColors.clear();
+            else if (selectedSearchColors.has(color)) selectedSearchColors.delete(color);
+            else selectedSearchColors.add(color);
+            window.renderSearchColorFilters();
+            window.renderListContent();
+        };
 
         window.renderListContent = () => {
             const listContainer = document.getElementById('record-list-content');
             if (listContainer) {
                 let filtered = filterMonth ? db.filter(x => x.date.startsWith(filterMonth)) : db;
                 filtered = filtered.filter(it => (it.note||'').toLowerCase().includes(searchTerm) || (it.supplier||'').toLowerCase().includes(searchTerm) || (it.departure||'').toLowerCase().includes(searchTerm) || (it.arrival||'').toLowerCase().includes(searchTerm));
+                if (selectedSearchColors.size) filtered = filtered.filter(it => selectedSearchColors.has(searchColorKey(it.color)));
                 filtered = sortMaster(filtered);
                 let runningTotal = 0;
                 listContainer.innerHTML = filtered.map(x => { runningTotal += Number(x.amount || 0); return renderItemCard(x, true, runningTotal, true); }).join('') || `<p class="text-center py-24 opacity-50 font-bold text-[15px] text-dim">기록이 없습니다.</p>`;
@@ -771,7 +806,8 @@
                     </div>`;
             } else if (currentNav === 'list') {
                 const monthInfo = filterMonth ? `<div class="mt-3 px-1 font-bold text-[13px] uppercase flex justify-between items-center" style="color: var(--brand-color)"><span>현재 ${parseInt(filterMonth.split('-')[1])}월 내역만 보는 중</span><button onclick="navTo('list')" class="underline underline-offset-2 active:opacity-50 cursor-pointer">전체 보기</button></div>` : "";
-                root.innerHTML = `<div class="px-5 py-6 text-important animate-in fade-in"><div class="py-4 sticky-sub top-[56px] bg-primary"><input type="text" placeholder="검색어 입력..." class="input-field" value="${searchTerm}" oninput="searchTerm=this.value.toLowerCase(); window.renderListContent();">${monthInfo}</div><h2 class="text-2xl font-black mb-6 mt-4">기록 리스트 (과거순)</h2><div id="record-list-content"></div></div>`;
+                root.innerHTML = `<div class="px-5 py-6 text-important animate-in fade-in"><div class="py-4 sticky-sub top-[56px] bg-primary"><input type="text" placeholder="검색어 입력..." class="input-field" value="${paymentAttribute(searchTerm)}" oninput="searchTerm=this.value.toLowerCase(); window.renderListContent();"><div class="mt-3 text-[12px] font-bold text-dim">색상으로 모아 보기 · 여러 개 선택 가능</div><div id="search-color-filters" role="group" aria-label="일정 색상 필터"></div>${monthInfo}</div><h2 class="text-2xl font-black mb-6 mt-4">기록 리스트 (과거순)</h2><div id="record-list-content"></div></div>`;
+                window.renderSearchColorFilters();
                 window.renderListContent();
             } else if (currentNav === 's_cal') {
                 const mData = sortMaster(db.filter(x => x.date.startsWith(mPrefix) && Number(x.amount) !== 0));
