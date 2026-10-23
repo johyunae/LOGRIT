@@ -384,7 +384,6 @@
             const date = document.getElementById('f-date')?.value || '';
             const button = document.getElementById('memo-photo-add');
             button.disabled = !/^\d{4}-\d{2}-\d{2}$/.test(date) || calendarPhotoBusy;
-            document.getElementById('memo-photo-date').textContent = date ? date + ' 날짜에 저장되는 사진' : '사진을 추가하려면 날짜를 선택해 주세요.';
             const preview = date ? renderMemoPhotoCards(date) : '';
             document.getElementById('memo-photo-list').innerHTML = preview || (date ? '<button type="button" class="memo-photo-empty" onclick="window.pickMemoPhotos()">＋ 사진을 추가하면 여기에 이미지가 표시됩니다</button>' : '');
 
@@ -1654,7 +1653,6 @@
                                 <span class="text-[14px] font-bold text-important">첨부 사진</span>
                                 <button type="button" id="memo-photo-add" onclick="window.pickMemoPhotos()" class="calendar-photo-add disabled:opacity-40">＋ 사진 추가</button>
                             </div>
-                            <p id="memo-photo-date" class="text-[12px] text-dim mt-1"></p>
                             <div id="memo-photo-list" aria-live="polite"></div>
                         </section>
                         <div class="px-1 pt-1">
