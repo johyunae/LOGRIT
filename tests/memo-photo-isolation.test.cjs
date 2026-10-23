@@ -58,8 +58,8 @@ test('schedule thumbnails show only that schedule and legacy photos stay availab
     assert.ok(!first.includes('data-photo-id="b"'));
     assert.ok(!first.includes('data-photo-id="legacy"'));
     const unassigned=a.run(`renderUnassignedPhotos('2026-10-23')`);
-    assert.ok(unassigned.includes('data-photo-id="legacy"'));
-    assert.ok(!unassigned.includes('data-photo-id="a"'));
+    assert.ok(unassigned.includes('src="old"'));
+    assert.ok(!unassigned.includes('src="a"'));
 });
 test('assigning an old photo preserves its image and moves it below the selected schedule',async()=>{
     const a=app();a.run(`db=[{id:'first',date:'2026-10-23'},{id:'second',date:'2026-10-23'}]; rows=[{id:'legacy',date:'2026-10-23',thumbnail:'thumb',image:'full',createdAt:123}]; writeCalendarPhotos=async values=>{saved=values;rows=values;};`);
