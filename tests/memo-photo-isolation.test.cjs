@@ -51,3 +51,22 @@ test('draft and save share the reserved schedule id so photos survive recovery',
     a.c.saveRecord({preventDefault(){}});
     assert.equal(a.run('db[0].id'),draft.photoRecordId);
 });
+test('schedule thumbnails show only that schedule and legacy photos stay available for assignment',()=>{
+    const a=app();a.run(`calendarPhotoIndex=[{id:'legacy',date:'2026-10-23',thumbnail:'old'},{id:'a',date:'2026-10-23',recordId:'first',thumbnail:'a'},{id:'b',date:'2026-10-23',recordId:'second',thumbnail:'b'}]; db=[{id:'first',date:'2026-10-23'},{id:'second',date:'2026-10-23'}];`);
+    const first=a.run(`renderSchedulePhotos('first')`);
+    assert.ok(first.includes('data-photo-id="a"'));
+    assert.ok(!first.includes('data-photo-id="b"'));
+    assert.ok(!first.includes('data-photo-id="legacy"'));
+    const unassigned=a.run(`renderUnassignedPhotos('2026-10-23')`);
+    assert.ok(unassigned.includes('data-photo-id="legacy"'));
+    assert.ok(!unassigned.includes('data-photo-id="a"'));
+});
+test('assigning an old photo preserves its image and moves it below the selected schedule',async()=>{
+    const a=app();a.run(`db=[{id:'first',date:'2026-10-23'},{id:'second',date:'2026-10-23'}]; rows=[{id:'legacy',date:'2026-10-23',thumbnail:'thumb',image:'full',createdAt:123}]; writeCalendarPhotos=async values=>{saved=values;rows=values;};`);
+    await a.c.assignCalendarPhoto('legacy','second');
+    assert.equal(a.run('saved[0].image'),'full');
+    assert.equal(a.run('saved[0].recordId'),'second');
+    assert.equal(a.run(`renderSchedulePhotos('first')`),'');
+    assert.ok(a.run(`renderSchedulePhotos('second')`).includes('legacy'));
+    assert.equal(a.run(`renderUnassignedPhotos('2026-10-23')`),'');
+});
