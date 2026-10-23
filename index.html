@@ -335,6 +335,8 @@
 
         let calendarPhotoIndex = [], calendarPhotoTargetDate = null, calendarPhotoBusy = false;
         let calendarPhotoDbPromise = null, calendarPhotoObjectUrl = null;
+        let currentPhotoRecordId = null, calendarPhotoTargetRecordId = null;
+        const newPhotoRecordId = () => 'record-' + Date.now() + '-' + Math.random().toString(36).slice(2);
         function calendarPhotoDb() {
             if (!calendarPhotoDbPromise) calendarPhotoDbPromise = new Promise((resolve, reject) => {
                 const request = indexedDB.open('logrit_calendar_photos_v1', 1);
@@ -367,17 +369,22 @@
         }
         async function loadCalendarPhotoIndex() {
             const rows = await readCalendarPhotos();
-            calendarPhotoIndex = rows.map(({ id, date, thumbnail, createdAt }) => ({ id, date, thumbnail, createdAt }))
+            calendarPhotoIndex = rows.map(({ id, date, thumbnail, createdAt, recordId }) => ({ id, date, thumbnail, createdAt, recordId }))
                 .sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
         }
-        function photosForDate(date) { return calendarPhotoIndex.filter(photo => photo.date === date); }
+        function photosForDate(date) {
+            return calendarPhotoIndex.filter(photo => {
+                const owner = photo.recordId && db.find(record => String(record.id) === photo.recordId);
+                return (owner ? owner.date : photo.date) === date;
+            });
+        }
         function renderCalendarPhotos(date, compact = false) {
             const photos = photosForDate(date), visible = compact ? photos.slice(0, 2) : photos;
             if (!visible.length) return '';
             return `<div class="calendar-photo-row ${compact ? 'is-compact' : ''}">${visible.map((photo, i) => `<button type="button" data-photo-id="${paymentAttribute(photo.id)}" onclick="event.stopPropagation(); window.openCalendarPhoto(this.dataset.photoId)" aria-label="${date} 사진 ${i + 1} 크게 보기"><img src="${paymentAttribute(photo.thumbnail)}" alt="${date} 첨부 사진" loading="lazy">${compact && i === visible.length - 1 && photos.length > 2 ? `<span class="calendar-photo-count">+${photos.length - 2}</span>` : ''}</button>`).join('')}</div>`;
         }
-        function renderMemoPhotoCards(date) {
-            const photos = photosForDate(date);
+        function renderMemoPhotoCards(recordId) {
+            const photos = calendarPhotoIndex.filter(photo => recordId && photo.recordId === recordId);
             if (!photos.length) return '';
             return '<div class="calendar-photo-row">' + photos.map((photo, i) => {
                 const id = paymentAttribute(photo.id);
@@ -390,18 +397,20 @@
             const date = document.getElementById('f-date')?.value || '';
             const button = document.getElementById('memo-photo-add');
             button.disabled = !/^\d{4}-\d{2}-\d{2}$/.test(date) || calendarPhotoBusy;
-            const preview = date ? renderMemoPhotoCards(date) : '';
+            const preview = date ? renderMemoPhotoCards(currentPhotoRecordId) : '';
             document.getElementById('memo-photo-list').innerHTML = preview || (date ? '<button type="button" class="memo-photo-empty" onclick="window.pickMemoPhotos()">＋ 사진을 추가하면 여기에 이미지가 표시됩니다</button>' : '');
 
         };
         window.pickMemoPhotos = () => {
             const date = document.getElementById('f-date')?.value;
             if (!date) { showToast('날짜를 먼저 선택해 주세요.'); return; }
-            window.pickCalendarPhotos(date);
+            window.saveDraft();
+            window.pickCalendarPhotos(date, currentPhotoRecordId);
         };
-        window.pickCalendarPhotos = (date) => {
+        window.pickCalendarPhotos = (date, recordId = null) => {
             if (calendarPhotoBusy) return;
             calendarPhotoTargetDate = date;
+            calendarPhotoTargetRecordId = recordId;
             const input = document.getElementById('calendar-photo-input');
             // Installed Android wrappers can lose ClipData-only multi-select results.
             // Single selection returns a URI; repeated additions still keep every photo.
@@ -426,14 +435,14 @@
             } finally { URL.revokeObjectURL(url); }
         }
         window.handleCalendarPhotoUpload = async (event) => {
-            const files = Array.from(event.target.files || []), date = calendarPhotoTargetDate;
+            const files = Array.from(event.target.files || []), date = calendarPhotoTargetDate, recordId = calendarPhotoTargetRecordId;
             if (!files.length || !date || calendarPhotoBusy) return;
             calendarPhotoBusy = true;
             window.refreshMemoPhotos();
             showToast('사진을 저장하고 있습니다.');
             try {
                 const rows = [];
-                for (const file of files) rows.push(await prepareCalendarPhoto(file, date));
+                for (const file of files) rows.push({ ...await prepareCalendarPhoto(file, date), ...(recordId ? { recordId } : {}) });
                 await writeCalendarPhotos(rows); await loadCalendarPhotoIndex(); render();
                 if (navigator.storage?.persist) navigator.storage.persist().catch(() => {});
                 showToast('사진 ' + rows.length + '장을 달력에 추가했습니다.');
@@ -1239,6 +1248,7 @@
             const draft = {
                 isOpen: true,
                 id: currentEditId,
+                photoRecordId: currentPhotoRecordId,
                 importLinkId: document.getElementById('f-import-link-id')?.value || '',
                 date: fDateEl.value || '',
                 departure: document.getElementById('f-departure')?.value || '',
@@ -1636,7 +1646,8 @@
         window.openEntryModal = (id = null, presetDate = null, draftData = null) => {
             closeDailyModal(); 
             currentEditId = draftData ? draftData.id : (id ? String(id) : null);
-            const it = id ? db.find(x => String(x.id) === id) : null;
+            currentPhotoRecordId = currentEditId ? String(currentEditId) : (draftData?.photoRecordId || newPhotoRecordId());
+            const it = id ? db.find(x => String(x.id) === String(id)) : null;
             const defaultDate = draftData ? draftData.date : (it ? it.date : (presetDate || selectedDate || getLocalToday()));
             
             const isDraft = draftData ? `<span class="text-xs font-normal text-indigo-400 ml-2">${draftData.fromImportLink ? '(링크에서 입력)' : '(작성중 복구됨)'}</span>` : '';
@@ -1742,7 +1753,7 @@
             if (window.lucide) lucide.createIcons();
         };
 
-        window.startCopy = () => { currentEditId = null; document.getElementById('f-import-link-id').value = ''; document.getElementById('f-card-payment-done').checked = false; document.getElementById('delete-btn')?.remove(); document.getElementById('single-schedule-backup')?.remove(); event.currentTarget.remove(); localStorage.removeItem('logrit_draft_data'); window.saveDraft(); showToast("복사 완료! 다른 날짜에 저장하세요."); };
+        window.startCopy = () => { currentEditId = null; currentPhotoRecordId = newPhotoRecordId(); window.refreshMemoPhotos(); document.getElementById('f-import-link-id').value = ''; document.getElementById('f-card-payment-done').checked = false; document.getElementById('delete-btn')?.remove(); document.getElementById('single-schedule-backup')?.remove(); event.currentTarget.remove(); localStorage.removeItem('logrit_draft_data'); window.saveDraft(); showToast("복사 완료! 다른 날짜에 저장하세요."); };
         window.saveRecord = (e) => { 
             e.preventDefault(); 
             let rawStr = document.getElementById('f-amount-display').value;
@@ -1755,7 +1766,7 @@
             const paymentFields = paymentEditorValues();
             const payment = getRecordPayment(paymentFields);
             const record = { 
-                id: currentEditId || String(Date.now()),
+                id: currentEditId || currentPhotoRecordId || String(Date.now()),
                 importLinkId: document.getElementById('f-import-link-id')?.value || '', 
                 date: document.getElementById('f-date').value, 
                 amount: finalAmount, 
