@@ -1845,7 +1845,7 @@
                     <div id="form-actions" class="flex gap-3">
                         ${id ? `<button type="button" onclick="window.deleteItemDirect('${id}')" id="delete-btn" class="flex-1 btn-del py-4.5 rounded-2xl font-bold text-center text-[15px]">삭제 Del</button>` : ''}
                         ${id ? `<button type="button" onclick="window.startCopy()" class="flex-1 btn-copy py-4.5 rounded-2xl font-bold text-center text-[15px]">복사 Copy</button>` : ''}
-                        <button type="submit" form="record-form" class="flex-[2] btn-primary text-[17px]">저장하기 Save</button>
+                        <button type="submit" form="record-form" class="btn-primary" style="width:48px;height:48px;min-height:48px;padding:0;border-radius:50%;flex:0 0 48px;display:flex;align-items:center;justify-content:center" aria-label="일정 저장" title="저장"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg></button>
                     </div>
             </div></div>`;
             document.body.insertAdjacentHTML('beforeend', html); 
