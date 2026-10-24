@@ -187,6 +187,12 @@
         .calendar-photo-assignment { display:flex; flex-direction:column; gap:8px; font-size:13px; flex-shrink:0; }
         .calendar-photo-assignment select { font-size:14px; min-width:0; }
         .calendar-photo-preview { display:block; pointer-events:none; }
+
+        /* Keep the action bar outside the editor's scrolling fields. */
+        #modal-container > .record-editor-shell { display:flex; flex-direction:column; height:95vh; height:95dvh; max-height:100%; min-height:0; overflow:hidden; padding-bottom:0; }
+        .record-editor-shell > div:first-child { flex-shrink:0; }
+        .record-editor-shell > #record-form { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding-bottom:24px; }
+        .record-editor-shell > #form-actions { flex-shrink:0; margin:0; padding:12px 0 max(16px, env(safe-area-inset-bottom)); border-top:1px solid var(--border-color); background:var(--modal-bg, var(--bg-color)); }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -1772,7 +1778,7 @@
             
             const isDraft = draftData ? `<span class="text-xs font-normal text-indigo-400 ml-2">${draftData.fromImportLink ? '(링크에서 입력)' : '(작성중 복구됨)'}</span>` : '';
 
-            let html = `<div id="modal-container" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-end text-left"><div class="bg-modal w-full max-w-md mx-auto rounded-t-[2.5rem] p-7 pb-12 overflow-y-auto max-h-[95vh] text-important text-left shadow-[0_-10px_40px_rgba(0,0,0,0.3)] border-t border-custom">
+            let html = `<div id="modal-container" class="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-end text-left"><div class="record-editor-shell bg-modal w-full max-w-md mx-auto rounded-t-[2.5rem] p-7 text-important text-left shadow-[0_-10px_40px_rgba(0,0,0,0.3)] border-t border-custom">
                 <div class="flex justify-between items-center mb-6 text-important">
                     <div class="flex items-baseline gap-2">
                         <h3 class="text-2xl font-black">일정 기록</h3>
@@ -1835,12 +1841,12 @@
                         </div>
                     </div>
                     ${id ? `<div id="single-schedule-backup" class="mt-6"><button type="button" onclick="window.exportSingleSchedule()" class="w-full btn-copy py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2"><i data-lucide="download" class="w-5 h-5"></i> 이 스케줄만 백업</button><p class="text-[12px] text-dim text-center mt-2">저장된 내용만 백업합니다. 수정 중이면 먼저 저장해 주세요.</p></div>` : ''}
-                    <div id="form-actions" class="flex gap-3 mt-8">
+                    </form>
+                    <div id="form-actions" class="flex gap-3">
                         ${id ? `<button type="button" onclick="window.deleteItemDirect('${id}')" id="delete-btn" class="flex-1 btn-del py-4.5 rounded-2xl font-bold text-center text-[15px]">삭제 Del</button>` : ''}
                         ${id ? `<button type="button" onclick="window.startCopy()" class="flex-1 btn-copy py-4.5 rounded-2xl font-bold text-center text-[15px]">복사 Copy</button>` : ''}
-                        <button type="submit" class="flex-[2] btn-primary text-[17px]">저장하기 Save</button>
+                        <button type="submit" form="record-form" class="flex-[2] btn-primary text-[17px]">저장하기 Save</button>
                     </div>
-                </form>
             </div></div>`;
             document.body.insertAdjacentHTML('beforeend', html); 
             
