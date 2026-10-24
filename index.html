@@ -673,11 +673,83 @@
             return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
         }
 
+        function getExtraChecks(item) {
+            return Array.isArray(item.extraChecks) ? item.extraChecks
+                .filter(check => check && typeof check.label === 'string' && check.label.trim())
+                .map(check => ({ label: check.label.trim().slice(0, 80), done: check.done === true })) : [];
+        }
+
+        function extraEditorChecks() {
+            try { return getExtraChecks({extraChecks: JSON.parse(document.getElementById('f-extra-checks')?.value || '[]')}); }
+            catch (_) { return []; }
+        }
+
+        window.renderExtraCheckEditor = () => {
+            const list = document.getElementById('f-extra-check-list');
+            if (!list) return;
+            list.innerHTML = extraEditorChecks().map((check, index) => `
+                <div>
+                    <label class="card-payment-status w-full gap-3">
+                        <input type="checkbox" class="w-5 h-5" ${check.done ? 'checked' : ''} onchange="window.changeExtraCheck(${index}, 'toggle')">
+                        <span>${paymentAttribute(check.label)} · 완료</span>
+                    </label>
+                    <div class="flex gap-4 mb-2 text-[12px] text-dim">
+                        <button type="button" onclick="window.changeExtraCheck(${index}, 'edit')">문구 수정</button>
+                        <button type="button" onclick="window.changeExtraCheck(${index}, 'remove')">표시 삭제</button>
+                    </div>
+                </div>`).join('');
+        };
+
+        window.addPaymentCheck = () => {
+            if (!getRecordPayment(paymentEditorValues())) { window.editPaymentCheck(); return; }
+            const value = prompt('완료 확인에 표시할 문구를 입력하세요. (예: 왕복, 캐13)', '');
+            if (value === null) return;
+            const label = value.trim().slice(0, 80);
+            if (!label) { showToast('표시할 문구를 입력해 주세요.'); return; }
+            const checks = extraEditorChecks();
+            checks.push({label, done: false});
+            document.getElementById('f-extra-checks').value = JSON.stringify(checks);
+            window.renderExtraCheckEditor();
+            window.saveDraft();
+        };
+
+        window.changeExtraCheck = (index, action) => {
+            const checks = extraEditorChecks();
+            if (!checks[index]) return;
+            if (action === 'remove') checks.splice(index, 1);
+            else if (action === 'toggle') checks[index].done = !checks[index].done;
+            else if (action === 'edit') {
+                const value = prompt('완료 확인에 표시할 문구를 입력하세요.', checks[index].label);
+                if (value === null) return;
+                const label = value.trim().slice(0, 80);
+                if (!label) { showToast('표시할 문구를 입력해 주세요.'); return; }
+                checks[index].label = label;
+            } else return;
+            document.getElementById('f-extra-checks').value = JSON.stringify(checks);
+            window.renderExtraCheckEditor();
+            window.saveDraft();
+        };
+
+        window.toggleExtraCheck = (id, index) => {
+            const item = db.find(x => String(x.id) === String(id));
+            if (!item) return;
+            const checks = getExtraChecks(item);
+            if (!checks[index]) return;
+            checks[index].done = !checks[index].done;
+            const next = db.map(x => x === item ? {...item, extraChecks: checks, updatedAt: Date.now()} : x);
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); }
+            catch (_) { showToast('완료 상태를 저장하지 못했습니다. 저장 공간을 확인해 주세요.'); return; }
+            db = next;
+            render();
+            if (document.getElementById('daily-modal-container')) window.updateDailyModalContent(selectedDate);
+        };
+
         function renderCardPayment(item) {
             const payment = getRecordPayment(item);
-            if (!payment) return '';
+            const extra = getExtraChecks(item).map((check, index) => `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleExtraCheck(this.dataset.paymentId, ${index})" aria-pressed="${check.done}" class="card-payment-status ${check.done ? 'is-paid' : ''}">${check.done ? '✓' : '□'} ${paymentAttribute(check.label)} · ${check.done ? '완료' : '미완료'}</button>`).join('');
+            if (!payment) return extra;
             const done = isCardPaymentDone(item);
-            return `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleCardPayment(this.dataset.paymentId)" aria-pressed="${done}" class="card-payment-status ${done ? 'is-paid' : ''}">${done ? '✓' : '□'} ${paymentAttribute(payment.label)} · ${done ? '완료' : '미완료'}</button>`;
+            return `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleCardPayment(this.dataset.paymentId)" aria-pressed="${done}" class="card-payment-status ${done ? 'is-paid' : ''}">${done ? '✓' : '□'} ${paymentAttribute(payment.label)} · ${done ? '완료' : '미완료'}</button>` + extra;
         }
 
         window.toggleCardPayment = (id) => {
@@ -705,7 +777,7 @@
             checkbox.dataset.paymentKey = key;
             checkbox.dataset.amount = payment ? String(payment.amount) : '';
             panel.hidden = !payment;
-            document.getElementById('f-payment-add').hidden = !!payment;
+            document.getElementById('f-payment-add').hidden = false;
             if (payment) document.getElementById('f-card-payment-label').textContent = payment.label + ' · 완료';
         };
 
@@ -1014,12 +1086,17 @@
                 if (typeof source[key] !== 'boolean') throw new Error('Invalid schedule status');
                 record[key] = source[key];
             }
+            if (source.extraChecks !== undefined) {
+                if (!Array.isArray(source.extraChecks) || source.extraChecks.some(check =>
+                    !check || typeof check.label !== 'string' || !check.label.trim() || check.label.length > 80 || typeof check.done !== 'boolean')) throw new Error('Invalid schedule checks');
+                record.extraChecks = getExtraChecks(source);
+            }
             return record;
         }
         function restoreSingleSchedule(payload) {
             const record = validateSingleScheduleBackup(payload);
             const sameContent = item => Object.keys(record).filter(key => key !== 'id' && key !== 'updatedAt')
-                .every(key => item[key] === record[key]);
+                .every(key => JSON.stringify(item[key]) === JSON.stringify(record[key]));
             if (db.some(sameContent)) return '이미 같은 스케줄이 있어 중복으로 추가하지 않았습니다.';
             if (!confirm(record.date + ' 스케줄 1개를 추가할까요? 기존 일정은 그대로 유지됩니다.')) return null;
             if (db.some(item => String(item.id) === record.id)) {
@@ -1305,7 +1382,8 @@
                 cardPaymentAmount: Number(document.getElementById('f-card-payment-done')?.dataset.amount || 0),
                 paymentCheckKey: document.getElementById('f-card-payment-done')?.dataset.paymentKey || '',
                 paymentCheckLabel: document.getElementById('f-payment-custom-label')?.value || '',
-                paymentCheckHidden: document.getElementById('f-payment-check-hidden')?.value === 'true'
+                paymentCheckHidden: document.getElementById('f-payment-check-hidden')?.value === 'true',
+                extraChecks: extraEditorChecks()
             };
             localStorage.setItem('logrit_draft_data', JSON.stringify(draft));
         };
@@ -1725,7 +1803,6 @@
                         
                         <input type="hidden" id="f-payment-custom-label">
                         <input type="hidden" id="f-payment-check-hidden" value="false">
-                        <button type="button" id="f-payment-add" onclick="window.editPaymentCheck()" class="card-payment-status">＋ 완료 확인 표시 추가</button>
                         <div id="f-card-payment-panel" hidden>
                             <label class="card-payment-status w-full gap-3">
                                 <input type="checkbox" id="f-card-payment-done" class="w-5 h-5" onchange="window.saveDraft()">
@@ -1736,6 +1813,9 @@
                                 <button type="button" onclick="window.removePaymentCheck()">표시 삭제</button>
                             </div>
                         </div>
+                        <input type="hidden" id="f-extra-checks" value="[]">
+                        <div id="f-extra-check-list"></div>
+                        <button type="button" id="f-payment-add" onclick="window.addPaymentCheck()" class="card-payment-status">＋ 확인 항목 추가</button>
                         <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
                         <section id="memo-photo-section" class="px-1 pt-2" aria-label="메모 아래 첨부 사진">
                             <div class="flex items-center justify-between gap-2">
@@ -1785,6 +1865,8 @@
 
             document.getElementById('f-import-link-id').value = (draftData || it || {}).importLinkId || '';
             const paymentSeed = draftData || it || {};
+            document.getElementById('f-extra-checks').value = JSON.stringify(getExtraChecks(paymentSeed));
+            window.renderExtraCheckEditor();
             const paymentCheckbox = document.getElementById('f-card-payment-done');
             document.getElementById('f-payment-custom-label').value = paymentSeed.paymentCheckLabel || '';
             document.getElementById('f-payment-check-hidden').value = paymentSeed.paymentCheckHidden === true ? 'true' : 'false';
@@ -1795,7 +1877,7 @@
             if (window.lucide) lucide.createIcons();
         };
 
-        window.startCopy = () => { currentEditId = null; currentPhotoRecordId = newPhotoRecordId(); window.refreshMemoPhotos(); document.getElementById('f-import-link-id').value = ''; document.getElementById('f-card-payment-done').checked = false; document.getElementById('delete-btn')?.remove(); document.getElementById('single-schedule-backup')?.remove(); event.currentTarget.remove(); localStorage.removeItem('logrit_draft_data'); window.saveDraft(); showToast("복사 완료! 다른 날짜에 저장하세요."); };
+        window.startCopy = () => { currentEditId = null; currentPhotoRecordId = newPhotoRecordId(); window.refreshMemoPhotos(); document.getElementById('f-import-link-id').value = ''; document.getElementById('f-card-payment-done').checked = false; document.getElementById('f-extra-checks').value = JSON.stringify(extraEditorChecks().map(check => ({...check, done: false}))); window.renderExtraCheckEditor(); document.getElementById('delete-btn')?.remove(); document.getElementById('single-schedule-backup')?.remove(); event.currentTarget.remove(); localStorage.removeItem('logrit_draft_data'); window.saveDraft(); showToast("복사 완료! 다른 날짜에 저장하세요."); };
         window.saveRecord = (e) => { 
             e.preventDefault(); 
             let rawStr = document.getElementById('f-amount-display').value;
@@ -1824,6 +1906,7 @@
                 paymentCheckKey: payment ? payment.key : '',
                 paymentCheckLabel: paymentFields.paymentCheckLabel,
                 paymentCheckHidden: paymentFields.paymentCheckHidden,
+                extraChecks: extraEditorChecks(),
                 updatedAt: Date.now() 
             }; 
             if(currentEditId) db = db.map(x => String(x.id) === currentEditId ? record : x); else db.push(record); 

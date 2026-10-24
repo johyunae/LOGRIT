@@ -9,7 +9,7 @@ const applyCode = html.slice(html.indexOf('        async function applyLogritBac
 const record = { id: '12345', date: '2026-10-15', time: '09:30', supplier: '한글 거래처',
   departure: '공항', arrival: '호텔', amount: -30000, people: 3, note: '예약 메모\n두 번째 줄',
   color: '#ff0000', importLinkId: '', cardPaymentDone: true, cardPaymentAmount: 5000,
-  paymentCheckKey: 'custom:카시트', paymentCheckLabel: '1베이비 카시트', paymentCheckHidden: false, updatedAt: 12345 };
+  paymentCheckKey: 'custom:카시트', paymentCheckLabel: '1베이비 카시트', paymentCheckHidden: false, extraChecks: [{label:'왕복',done:true},{label:'카시트',done:false}], updatedAt: 12345 };
 function app(records = [], options = {}) {
   let saved, download, photos = 0;
   const context = vm.createContext({ console, Date, Math, Set, JSON, encodeURIComponent, localStorage: {
@@ -21,7 +21,7 @@ function app(records = [], options = {}) {
       click() { download = JSON.parse(decodeURIComponent(attrs.href.split(',')[1])); }, remove() {} }; }, body: { appendChild() {} } }
   });
   vm.runInContext(`const STORAGE_KEY = 'test'; let db = ${JSON.stringify(records)}; let currentEditId = '12345';`, context);
-  vm.runInContext(code + applyCode, context);
+  vm.runInContext(html.slice(html.indexOf('        function getExtraChecks'), html.indexOf('        function extraEditorChecks')) + code + applyCode, context);
   return { context, value: () => JSON.parse(vm.runInContext('JSON.stringify(db)', context)),
     saved: () => saved, download: () => download, photos: () => photos };
 }

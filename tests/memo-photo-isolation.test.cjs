@@ -39,7 +39,7 @@ test('uploads retain the originating schedule, and reloading the index keeps tha
 test('draft and save share the reserved schedule id so photos survive recovery',()=>{
     const a=app();let draft;
     a.c.localStorage={setItem:(key,value)=>{draft=JSON.parse(value);}};
-    a.c.refreshCardPaymentEditor=()=>{};
+    a.c.refreshCardPaymentEditor=()=>{};a.c.extraEditorChecks=()=>[];
     a.run(`currentEditId=null; currentPhotoRecordId='record-draft';`);
     vm.runInContext(html.slice(html.indexOf('        window.saveDraft ='),html.indexOf('        window.swapRoute')),a.c);
     a.c.saveDraft();assert.equal(draft.photoRecordId,'record-draft');
