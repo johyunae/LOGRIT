@@ -825,12 +825,12 @@
                     </div>
                     ${renderCardPayment(item)}
                     <p class="record-card-note font-black text-[17px] text-important leading-[1.15] mb-2">${note || '일정 기록'}</p>
-                    ${renderSchedulePhotos(item.id)}
                     ${(dept || arrv) ? `<div class="record-card-route bg-sub p-3 rounded-xl mb-2 text-[15.5px] font-bold flex items-center gap-2 text-important border border-custom"><span>${dept || '..'}</span> <i data-lucide="arrow-right" class="w-4 h-4 opacity-80" style="color: var(--brand-color)"></i> <span>${arrv || '..'}</span></div>` : ''}
                     <div class="record-card-foot flex justify-between items-end text-[15px] mt-1">
                         <span class="text-dim font-medium">${supp || ''} ${item.people > 0 ? '(인원:'+item.people+'명)' : ''}</span>
                         <b class="record-card-amount text-important text-[20px] font-black tracking-tighter">${priceDisplay}</b>
                     </div>
+                    ${renderSchedulePhotos(item.id)}
                 </div>`;
         }
 
@@ -914,7 +914,7 @@
                                 const title = paymentAttribute(cleanText(it.note, cleanText(it.supplier, '일정')));
                                 const details = paymentAttribute([cleanText(it.supplier), cleanText(it.departure), cleanText(it.arrival), Number(it.people) > 0 ? Number(it.people)+'명' : ''].filter(Boolean).join(' · '));
                                 const amountHtml = showAmounts && Number(it.amount) !== 0 ? `<span class="daily-inline-amount">${formatKRW(Number(it.amount))}원</span>` : '';
-                                return `<div class="daily-inline-item${it.color ? ' has-color' : ''}"${it.color ? ` style="--item-color:${it.color}"` : ''} onclick="event.stopPropagation(); openEntryModal('${it.id}')"><span class="daily-inline-time">${smartTimeFormat(it.time) || ''}</span><span class="daily-inline-text"><span class="daily-inline-mission">${renderCardPayment(it)}</span>${title}${renderSchedulePhotos(it.id, false)}${details ? `<span class="daily-inline-detail">${details}</span>` : ''}</span>${amountHtml}</div>`;
+                                return `<div class="daily-inline-item${it.color ? ' has-color' : ''}"${it.color ? ` style="--item-color:${it.color}"` : ''} onclick="event.stopPropagation(); openEntryModal('${it.id}')"><span class="daily-inline-time">${smartTimeFormat(it.time) || ''}</span><span class="daily-inline-text"><span class="daily-inline-mission">${renderCardPayment(it)}</span>${title}${details ? `<span class="daily-inline-detail">${details}</span>` : ''}${renderSchedulePhotos(it.id, false)}</span>${amountHtml}</div>`;
                             }).join('') : '<div class="daily-inline-empty">등록된 일정이 없습니다.</div>'}
                             ${renderUnassignedPhotos(selectedDate)}
                         </div>`;
