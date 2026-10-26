@@ -75,6 +75,7 @@
    try{localStorage.setItem(STORAGE_KEY,nextText);localStorage.setItem(META,JSON.stringify({ownerId:snapshot.ownerId,links:work.nextLinks}));}
    catch(e){localStorage.setItem(STORAGE_KEY,before);if(oldMeta==null)localStorage.removeItem(META);else localStorage.setItem(META,oldMeta);throw e;}
    db=work.next;
+   if(window.syncPickupAlerts)window.syncPickupAlerts();
    if(!document.getElementById('modal-container')&&!document.getElementById('auto-input-modal'))render();
    status('AI 연결됨 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 동기화');
   }finally{busy=false;}
