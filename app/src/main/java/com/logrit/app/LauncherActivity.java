@@ -42,6 +42,7 @@ public class LauncherActivity extends Activity {
             ? "ca-app-pub-3940256099942544/9214589741"
             : "ca-app-pub-4817798220289653/7853351468";
 
+    private PickupLocation pickupLocation;
     private WebView webView;
     private WebView connectionView;
     private LinearLayout connectionPanel;
@@ -73,6 +74,7 @@ public class LauncherActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
         webView = new WebView(this);
+        pickupLocation = new PickupLocation(this, webView);
         webView.setBackgroundColor(systemBarBackground);
         root.addView(webView, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -204,6 +206,7 @@ public class LauncherActivity extends Activity {
             @Override
             public boolean onJsPrompt(WebView view, String url, String message,
                     String defaultValue, JsPromptResult result) {
+                if (pickupLocation.handlePrompt(url, message, result)) return true;
                 EditText input = new EditText(LauncherActivity.this);
                 input.setText(defaultValue);
                 new AlertDialog.Builder(LauncherActivity.this).setMessage(message).setView(input)
@@ -323,7 +326,14 @@ public class LauncherActivity extends Activity {
     }
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (pickupLocation != null) pickupLocation.permissionsReturned(requestCode);
+    }
+
+    @Override
     protected void onDestroy() {
+        if (pickupLocation != null) pickupLocation.close();
         if (fileChooserCallback != null) fileChooserCallback.onReceiveValue(null);
         closeConnectionWindow();
         if (adView != null) adView.destroy();
