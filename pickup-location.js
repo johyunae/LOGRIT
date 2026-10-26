@@ -1,7 +1,9 @@
 /* Resolve saved schedule labels to user-confirmed coordinates, then hand off to TMAP. */
 (() => {
+    const version = navigator.userAgent.match(/LOGRIT-Android\/(\d+)/);
+    const supported = !!version && Number(version[1]) >= 11;
     const native = (action, data = {}) => {
-        if (!/LOGRIT-Android\/(\d+)/.test(navigator.userAgent) || Number(RegExp.$1) < 11) {
+        if (!supported) {
             if (action !== 'sync') alert('위치 확인은 로그릿 안드로이드 버전 11 이상으로 업데이트한 뒤 사용할 수 있습니다.');
             return null;
         }
@@ -39,6 +41,8 @@
     window.setPickupLocation = p => {
         const input = document.getElementById('f-pickup-location');
         if (!input) return;
+        const panel = document.querySelector?.('[data-pickup-features]');
+        if (panel) panel.hidden = !supported;
         const label = labelFor('departure');
         if (!valid(p) || p.departure !== label) p = remembered(label);
         input.value = JSON.stringify(p);
