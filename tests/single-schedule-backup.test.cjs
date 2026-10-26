@@ -62,3 +62,11 @@ test('legacy full backups still use the existing restore path', async () => {
   const a=app([]); await a.context.applyLogritBackup([record]);
   assert.deepEqual(a.value(), [record]);
 });
+
+test('pickup coordinates survive a single-schedule backup and invalid coordinates are rejected', async () => {
+  const location = {name:'승차장',lat:35.1,lng:129.1,departure:record.departure,auto:true};
+  const a=app([]); await a.context.applyLogritBackup(backup({...record,pickupLocation:location}));
+  assert.deepEqual(a.value()[0].pickupLocation, location);
+  const b=app([]); await assert.rejects(b.context.applyLogritBackup(backup({...record,pickupLocation:{...location,lat:100}})));
+  assert.deepEqual(b.value(), []);
+});

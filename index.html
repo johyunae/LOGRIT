@@ -541,6 +541,7 @@
             try { if (!legacy) await writeCalendarPhotos(parsed.calendarPhotos, true); }
             catch(error) { if (oldRecords === null) localStorage.removeItem(STORAGE_KEY); else localStorage.setItem(STORAGE_KEY, oldRecords); throw error; }
             db = records;
+            if (window.syncPickupAlerts) window.syncPickupAlerts();
             if (!legacy) await loadCalendarPhotoIndex();
             render();
             return '로그릿 데이터 복원이 완료되었습니다.';
@@ -1122,6 +1123,7 @@
             const next = [...db, record];
             localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
             db = next;
+            if (window.syncPickupAlerts) window.syncPickupAlerts();
             render();
             return '스케줄 1개를 복원했습니다. 기존 일정은 그대로입니다.';
         }
