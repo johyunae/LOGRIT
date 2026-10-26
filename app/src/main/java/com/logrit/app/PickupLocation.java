@@ -54,9 +54,10 @@ final class PickupLocation {
                 result.confirm(ready ? "ready" : "pending");
             } else {
                 result.confirm("ok");
-                if ("choose".equals(action)) choose(request.optString("departure"));
+                if ("choose".equals(action)) choose(request.optString("departure"), request.optString("role", "departure"));
                 else if ("check".equals(action)) check(request.getJSONObject("pickup"));
-                else if ("navigate".equals(action)) navigate(request.getJSONObject("pickup"));
+                else if ("navigate".equals(action)) navigate(request.getJSONObject("pickup"), null);
+                else if ("route".equals(action)) navigate(request.getJSONObject("destination"), request.getJSONObject("pickup"));
                 else if ("sync".equals(action)) PickupWorker.sync(activity, request.getJSONArray("records"));
             }
         } catch (Exception e) { Toast.makeText(activity, "위치 요청을 처리하지 못했습니다.", Toast.LENGTH_LONG).show(); }
@@ -94,7 +95,7 @@ final class PickupLocation {
             message("권한 설정 후 자동 위치 확인을 다시 켜 주세요.");
         }
     }
-    private void choose(String departure) {
+    private void choose(String departure, String role) {
         if (departure.length() > 200 || departure.trim().isEmpty()) return;
         EditText input = new EditText(activity);
         input.setSingleLine(true); input.setText(departure);
@@ -117,7 +118,7 @@ final class PickupLocation {
                                 new AlertDialog.Builder(activity).setTitle("이 장소로 지정할까요?").setMessage(departure + "\n" + names[index])
                                     .setPositiveButton("지정", (confirm, which) -> {
                                         try {
-                                            JSONObject p = new JSONObject().put("name", departure + " · " + names[index]).put("lat", a.getLatitude()).put("lng", a.getLongitude()).put("departure", departure).put("auto", false);
+                                            JSONObject p = new JSONObject().put("role", "arrival".equals(role) ? "arrival" : "departure").put("name", (departure + " · " + names[index]).substring(0, Math.min(300, (departure + " · " + names[index]).length()))).put("lat", a.getLatitude()).put("lng", a.getLongitude()).put("departure", departure).put("auto", false);
                                             view.evaluateJavascript("window.logritPickupChosen && window.logritPickupChosen(" + p + ")", null);
                                         } catch (Exception ignored) { message("위치를 지정하지 못했습니다."); }
                                     }).setNegativeButton("취소", null).show();
@@ -144,17 +145,21 @@ final class PickupLocation {
             if (activity.isFinishing() || activity.isDestroyed()) return;
             String text = PickupFix.describe(fix, p.optDouble("lat"), p.optDouble("lng"), p.optString("name"));
             new AlertDialog.Builder(activity).setTitle("픽업 장소 확인").setMessage(text).setPositiveButton("확인", null)
-                .setNeutralButton("티맵 길안내", (d,w) -> navigate(p)).show();
+                .setNeutralButton("티맵 길안내", (d,w) -> navigate(p, null)).show();
             if (speechReady) speech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "pickup-check");
         });
     }
-    private void navigate(JSONObject p) {
-        if (!valid(p)) { message("픽업 장소를 먼저 지정해 주세요."); return; }
-        Uri uri = new Uri.Builder().scheme("tmap").authority("route")
+    private void navigate(JSONObject p, JSONObject start) {
+        if (!valid(p) || (start != null && !valid(start))) { message("출발지와 도착지의 위치를 먼저 지정해 주세요."); return; }
+        Uri.Builder route = new Uri.Builder().scheme("tmap").authority("route")
             .appendQueryParameter("goalx", String.valueOf(p.optDouble("lng")))
             .appendQueryParameter("goaly", String.valueOf(p.optDouble("lat")))
             .appendQueryParameter("goalname", p.optString("name"))
-            .appendQueryParameter("appname", "LOGRIT").appendQueryParameter("by", "CAR").build();
+            .appendQueryParameter("appname", "LOGRIT").appendQueryParameter("by", "CAR");
+        if (start != null) route.appendQueryParameter("startx", String.valueOf(start.optDouble("lng")))
+            .appendQueryParameter("starty", String.valueOf(start.optDouble("lat")))
+            .appendQueryParameter("startname", start.optString("name"));
+        Uri uri = route.build();
         try { activity.startActivity(new Intent(Intent.ACTION_VIEW, uri).setPackage("com.skt.tmap.ku")); }
         catch (ActivityNotFoundException e) {
             new AlertDialog.Builder(activity).setMessage("티맵을 찾을 수 없습니다. 설치 페이지를 열까요?")

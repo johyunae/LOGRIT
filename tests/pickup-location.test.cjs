@@ -2,14 +2,15 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
-function setup(version = 11) {
+function setup(version = 11, storage = new Map()) {
   const elements = {
     'f-pickup-location': {value: ''}, 'f-pickup-auto': {checked: false},
-    'f-departure': {value: '오션호텔'}, 'pickup-location-label': {textContent: ''}
+    'f-departure': {value: '오션호텔'}, 'pickup-location-label': {textContent: ''},
+    'f-arrival':{value:'국제'},'f-destination-location':{value:''},'destination-location-label':{textContent:''}
   };
   const calls = [], alerts = [];
   const c = {window: {}, document: {getElementById: id => elements[id]}, navigator: {userAgent: `LOGRIT-Android/${version}`},
-    db: [], prompt: (text) => { calls.push(JSON.parse(text.slice('LOGRIT_PICKUP:'.length))); return 'ready'; }, alert: text => alerts.push(text)};
+    db: [], localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)}, prompt: (text) => { calls.push(JSON.parse(text.slice('LOGRIT_PICKUP:'.length))); return 'ready'; }, alert: text => alerts.push(text)};
   c.window.saveDraft = () => {};
   vm.createContext(c); vm.runInContext(fs.readFileSync('pickup-location.js','utf8'), c);
   return {c, elements, calls, alerts, w: c.window};
@@ -38,4 +39,21 @@ test('older Play app versions never invoke unsupported native commands', () => {
 test('invalid and asynchronous obsolete address results cannot overwrite the current pickup', () => {
   const {w,elements} = setup(); w.setPickupLocation({...place,lat:NaN}); assert.equal(w.pickupEditorValue(),null);
   elements['f-departure'].value='스테이온'; w.logritPickupChosen(place); assert.equal(w.pickupEditorValue(),null);
+});
+
+test('stored departure and destination are both sent to TMAP without using current location as the start', () => {
+  const {w,calls} = setup();
+  w.setPickupLocation(place); w.setDestinationLocation({...place,name:'김해공항 국제선',departure:'국제',lat:35.17,lng:128.94});
+  w.navigateScheduleRoute(); const request=calls.at(-1);
+  assert.equal(request.action,'route'); assert.equal(request.pickup.lat,35.1); assert.equal(request.destination.lng,128.94);
+});
+test('confirmed names are reused across schedules, while unconfirmed labels and flight numbers are not guessed', () => {
+  const storage=new Map(), first=setup(11,storage);
+  first.w.choosePickupLocation(); first.w.logritPickupChosen(place);
+  first.w.chooseDestinationLocation(); first.w.logritPickupChosen({...place,role:'arrival',departure:'국제',name:'김해공항 국제선',lat:35.17,lng:128.94});
+  const next=setup(11,storage); next.w.setPickupLocation(null); next.w.setDestinationLocation(null); next.w.navigateScheduleRoute();
+  assert.equal(next.calls.at(-1).action,'route');
+  next.elements['f-departure'].value='다른 호텔'; next.w.refreshRouteLocations(); assert.equal(next.w.pickupEditorValue(),null);
+  next.elements['f-departure'].value='BX123'; next.w.choosePickupLocation(); next.w.logritPickupChosen({...place,departure:'BX123'});
+  const flight=setup(11,storage); flight.elements['f-departure'].value='BX123'; flight.w.setPickupLocation(null); assert.equal(flight.w.pickupEditorValue(),null);
 });
