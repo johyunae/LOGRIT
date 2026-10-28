@@ -70,6 +70,7 @@
             height: 24px;
         }
 
+        .route-domestic-badge { display:inline-block; padding:0 4px; margin:0 1px; border:2px solid #f59e0b; border-radius:4px; background:#fef3c7; color:#78350f; font-weight:900; line-height:1.25; white-space:nowrap; vertical-align:baseline; }
         .text-important { color: var(--text-bold) !important; }
         .text-dim { color: var(--text-main); }
         .bg-primary { background-color: var(--bg-color); }
@@ -276,7 +277,7 @@
             const fallback = 'https://johyunae.github.io/LOGRIT/#logrit-import=' + encoded;
             const appLink = 'intent://import/?data=' + encoded + '#Intent;scheme=logrit;package=com.logrit.app;S.browser_fallback_url=' + encodeURIComponent(fallback) + ';end';
             const action = /Android/i.test(navigator.userAgent || '') ? `<a href="${paymentAttribute(appLink)}" class="btn-primary block text-center">로그릿 앱에서 열기</a>` : '<p class="text-dim text-center">휴대폰에서 이 링크를 열어 로그릿 앱에 입력해 주세요.</p>';
-            document.body.insertAdjacentHTML('beforeend', `<div id="logrit-import-preview" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[250] flex items-center justify-center p-5"><div class="bg-modal text-important w-full max-w-md rounded-3xl p-6 border border-custom max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-5"><h2 class="text-xl font-black">로그릿에 입력</h2><button type="button" onclick="document.getElementById('logrit-import-preview').remove()" class="p-2" aria-label="입력 안내 닫기">×</button></div><p class="font-black mb-3">${data.date} ${data.time}</p><p class="font-bold mb-4">${paymentAttribute(data.departure)} → ${paymentAttribute(data.arrival)}</p><p class="text-[14px] whitespace-pre-wrap mb-6">${paymentAttribute(data.note)}</p>${action}<p class="text-[12px] text-dim mt-4">앱에서 확인한 뒤 저장해 주세요. 앱 연결 기능은 로그릿 버전 7 이상에서 사용할 수 있습니다.</p></div></div>`);
+            document.body.insertAdjacentHTML('beforeend', `<div id="logrit-import-preview" class="fixed inset-0 bg-black/70 backdrop-blur-md z-[250] flex items-center justify-center p-5"><div class="bg-modal text-important w-full max-w-md rounded-3xl p-6 border border-custom max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-5"><h2 class="text-xl font-black">로그릿에 입력</h2><button type="button" onclick="document.getElementById('logrit-import-preview').remove()" class="p-2" aria-label="입력 안내 닫기">×</button></div><p class="font-black mb-3">${data.date} ${data.time}</p><p class="font-bold mb-4">${formatRouteLabel(data.departure)} → ${formatRouteLabel(data.arrival)}</p><p class="text-[14px] whitespace-pre-wrap mb-6">${paymentAttribute(data.note)}</p>${action}<p class="text-[12px] text-dim mt-4">앱에서 확인한 뒤 저장해 주세요. 앱 연결 기능은 로그릿 버전 7 이상에서 사용할 수 있습니다.</p></div></div>`);
         }
         window.consumeLogritImportLink = () => {
             const encoded = new URLSearchParams(location.hash.slice(1)).get('logrit-import');
@@ -807,8 +808,12 @@
             window.saveDraft();
         };
 
+        function formatRouteLabel(value) {
+            return paymentAttribute(cleanText(value)).replace(/국내/g, '<span class="route-domestic-badge">국내</span>');
+        }
+
         function renderItemCard(item, showDate = false, cumulativeSum = null, forceAlwaysShow = false) {
-            const note = paymentAttribute(cleanText(item.note)); const supp = paymentAttribute(cleanText(item.supplier)); const dept = paymentAttribute(cleanText(item.departure)); const arrv = paymentAttribute(cleanText(item.arrival));
+            const note = paymentAttribute(cleanText(item.note)); const supp = paymentAttribute(cleanText(item.supplier)); const dept = formatRouteLabel(item.departure); const arrv = formatRouteLabel(item.arrival);
             const shouldHide = !forceAlwaysShow && !showAmounts;
             let priceDisplay = "";
             if (item.amount !== 0 && item.amount !== undefined && item.amount !== null) {
@@ -914,7 +919,7 @@
                             <div class="daily-inline-head"><span>${m+1}월 ${selectedDay}일 (${dayNames[dow]})</span></div>
                             ${selectedItems.length ? selectedItems.map(it => {
                                 const title = paymentAttribute(cleanText(it.note, cleanText(it.supplier, '일정')));
-                                const details = paymentAttribute([cleanText(it.supplier), cleanText(it.departure), cleanText(it.arrival), Number(it.people) > 0 ? Number(it.people)+'명' : ''].filter(Boolean).join(' · '));
+                                const details = [paymentAttribute(cleanText(it.supplier)), formatRouteLabel(it.departure), formatRouteLabel(it.arrival), Number(it.people) > 0 ? Number(it.people)+'명' : ''].filter(Boolean).join(' · ');
                                 const amountHtml = showAmounts && Number(it.amount) !== 0 ? `<span class="daily-inline-amount">${formatKRW(Number(it.amount))}원</span>` : '';
                                 return `<div class="daily-inline-item${it.color ? ' has-color' : ''}"${it.color ? ` style="--item-color:${it.color}"` : ''} onclick="event.stopPropagation(); openEntryModal('${it.id}')"><span class="daily-inline-time">${smartTimeFormat(it.time) || ''}</span><span class="daily-inline-text"><span class="daily-inline-mission">${renderCardPayment(it)}</span>${title}${details ? `<span class="daily-inline-detail">${details}</span>` : ''}${renderSchedulePhotos(it.id, false)}</span>${amountHtml}</div>`;
                             }).join('') : '<div class="daily-inline-empty">등록된 일정이 없습니다.</div>'}
