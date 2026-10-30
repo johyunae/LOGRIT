@@ -984,7 +984,7 @@
                     <div class="sticky-sub bg-primary border-b border-custom" style="padding:12px 20px">
                         <div class="flex items-center justify-between">
                             <button type="button" onclick="moveMonth(-1)" class="p-3 rounded-xl bg-sub" aria-label="매출 달력 이전 달">‹</button>
-                            <h2 class="text-2xl font-black">${calContext.getFullYear()}년 ${calContext.getMonth()+1}월</h2>
+                            <h2 class="text-lg font-bold">${calContext.getFullYear()}년 ${calContext.getMonth()+1}월</h2>
                             <button type="button" onclick="moveMonth(1)" class="p-3 rounded-xl bg-sub" aria-label="매출 달력 다음 달">›</button>
                         </div>
                         <p class="text-base text-dim mt-2">월간 매출 합계</p><p class="text-3xl font-black" style="color:${monthRevenue<0?'#f87171':'var(--brand-color)'}">${formatKRW(monthRevenue)}원</p>
@@ -2034,7 +2034,7 @@
             else { el.value = isMinus ? '-' : ''; }
         };
     </script>
-    <script src="/LOGRIT/sales-calendar.js?v=20261030-4"></script>
+    <script src="/LOGRIT/sales-calendar.js?v=20261030-5"></script>
     <script src="/LOGRIT/pickup-location.js?v=20261030-compact"></script>
     <script src="/LOGRIT/ai-connect.js?v=20261016-3"></script>
 </body>
