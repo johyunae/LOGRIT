@@ -1,6 +1,11 @@
 /* Revenue calendar using existing schedule amounts. No stored records are changed. */
 (() => {
     const amount = r => Number.isFinite(Number(r.amount)) ? Number(r.amount) : 0;
+    const compactAmount = value => {
+        if (Math.abs(value) < 10000) return value.toLocaleString('ko-KR');
+        const rounded = Math.round(Math.abs(value) / 1000) / 10;
+        return (Math.abs(value) % 1000 ? '≈' : '') + (value < 0 ? '-' : '') + rounded.toLocaleString('ko-KR', {maximumFractionDigits:1}) + '만';
+    };
     const key = (y,m,d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     window.renderSalesCalendar = (records, year, month) => {
         const prefix = `${year}-${String(month+1).padStart(2,'0')}-`;
@@ -14,10 +19,11 @@
             else {
                 const date = key(year,month,day), total=totals.get(date)||0;
                 weekTotal += total;
-                const digits = total.toLocaleString('ko-KR').length;
-                const amountSize = digits <= 7 ? '15px' : digits <= 9 ? '13px' : '11px';
+                const displayAmount = compactAmount(total);
+                const digits = displayAmount.length;
+                const amountSize = digits <= 5 ? '18px' : digits <= 7 ? '15px' : '13px';
                 const color = total<0 ? '#f87171' : 'var(--text-bold)';
-                cells += `<button type="button" data-sales-date="${date}" onclick="window.openSalesCalendarDay(this.dataset.salesDate)" aria-label="${month+1}월 ${day}일 매출 ${total.toLocaleString('ko-KR')}원" style="min-width:0;min-height:60px;padding:4px 0;border:1px solid var(--border-color);border-radius:6px;background:var(--sub-bg);text-align:center"><span style="display:block;font-size:11px;font-weight:600;color:${slot%7===0?'#f87171':slot%7===6?'#60a5fa':'var(--text-main)'}">${day}</span><span style="display:block;font-size:${amountSize};font-weight:900;white-space:nowrap;letter-spacing:-0.7px;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:4px;color:${color}">${totals.has(date)?total.toLocaleString('ko-KR'):'—'}</span></button>`;
+                cells += `<button type="button" data-sales-date="${date}" onclick="window.openSalesCalendarDay(this.dataset.salesDate)" aria-label="${month+1}월 ${day}일 매출 ${total.toLocaleString('ko-KR')}원" style="min-width:0;min-height:60px;padding:4px 0;border:1px solid var(--border-color);border-radius:6px;background:var(--sub-bg);text-align:center"><span style="display:block;font-size:15px;font-weight:700;color:${slot%7===0?'#f87171':slot%7===6?'#60a5fa':'var(--text-main)'}">${day}</span><span style="display:block;font-size:${amountSize};font-weight:900;white-space:nowrap;letter-spacing:-0.7px;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:4px;color:${color}">${totals.has(date)?displayAmount:'—'}</span></button>`;
             }
             if (slot%7===6) {
                 const start=Math.max(1,slot-6-first+1),end=Math.min(days,day);
@@ -25,7 +31,7 @@
                 weekTotal=0;
             }
         }
-        return `<section aria-label="매출 달력" style="margin:8px 4px 0"><p style="font-size:13px;color:var(--text-main);margin:0 4px 5px">단위 원 · 주간 합계는 이번 달 날짜만 합산</p><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px">${['일','월','화','수','목','금','토'].map(d=>`<div style="text-align:center;font-size:12px;font-weight:600;padding:3px">${d}</div>`).join('')}${cells}</div></section>`;
+        return `<section aria-label="매출 달력" style="margin:8px 4px 0"><p style="font-size:13px;color:var(--text-main);margin:0 4px 5px">일별 금액: 만 단위 · ≈는 반올림 · 정확한 금액은 날짜 선택</p><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px">${['일','월','화','수','목','금','토'].map(d=>`<div style="text-align:center;font-size:12px;font-weight:600;padding:3px">${d}</div>`).join('')}${cells}</div></section>`;
     };
     window.openSalesCalendarDay = date => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
