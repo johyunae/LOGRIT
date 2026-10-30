@@ -113,16 +113,41 @@ final class PickupLocation {
                             if (matches == null || matches.isEmpty()) { message("주소를 찾지 못했습니다. 정확한 도로명 주소로 다시 검색해 주세요."); return; }
                             String[] names = new String[matches.size()];
                             for (int i=0;i<names.length;i++) names[i] = matches.get(i).getAddressLine(0);
-                            new AlertDialog.Builder(activity).setTitle("픽업 장소의 정확한 주소 선택").setItems(names, (dialog, index) -> {
-                                Address a = matches.get(index);
-                                new AlertDialog.Builder(activity).setTitle("이 장소로 지정할까요?").setMessage(departure + "\n" + names[index])
-                                    .setPositiveButton("지정", (confirm, which) -> {
-                                        try {
-                                            JSONObject p = new JSONObject().put("role", "arrival".equals(role) ? "arrival" : "departure").put("name", (departure + " · " + names[index]).substring(0, Math.min(300, (departure + " · " + names[index]).length()))).put("lat", a.getLatitude()).put("lng", a.getLongitude()).put("departure", departure).put("auto", false);
-                                            view.evaluateJavascript("window.logritPickupChosen && window.logritPickupChosen(" + p + ")", null);
-                                        } catch (Exception ignored) { message("위치를 지정하지 못했습니다."); }
-                                    }).setNegativeButton("취소", null).show();
-                            }).setNegativeButton("취소", null).show();
+                            // Keep selection and confirmation in one dialog. Do not open a
+                            // second dialog while Android is dismissing the address list.
+                            final int[] selected = {-1};
+                            AlertDialog picker = new AlertDialog.Builder(activity)
+                                .setTitle("arrival".equals(role) ? "도착지 주소 선택" : "픽업 주소 선택")
+                                .setSingleChoiceItems(names, -1, (dialog, index) -> {
+                                    selected[0] = index;
+                                    ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                                })
+                                .setPositiveButton("선택한 주소로 지정", (dialog, which) -> {
+                                    int index = selected[0];
+                                    if (index < 0 || index >= matches.size()) return;
+                                    Address a = matches.get(index);
+                                    try {
+                                        JSONObject p = new JSONObject().put("role", "arrival".equals(role) ? "arrival" : "departure")
+                                            .put("name", (departure + " · " + names[index]).substring(0, Math.min(300, (departure + " · " + names[index]).length())))
+                                            .put("lat", a.getLatitude()).put("lng", a.getLongitude()).put("departure", departure).put("auto", false);
+                                        String field = "arrival".equals(role) ? "f-destination-location" : "f-pickup-location";
+                                        String script = "(function(){try{if(!window.logritPickupChosen)return false;"
+                                            + "window.logritPickupChosen(" + p + ");"
+                                            + "var e=document.getElementById('" + field + "');"
+                                            + "var v=JSON.parse(e&&e.value||'null');"
+                                            + "return !!v&&v.lat===" + a.getLatitude() + "&&v.lng===" + a.getLongitude()
+                                            + "&&v.departure===" + JSONObject.quote(departure) + ";}catch(e){return false;}})()";
+                                        view.evaluateJavascript(script, accepted -> {
+                                            if ("true".equals(accepted)) {
+                                                Toast.makeText(activity, "주소를 지정했습니다: " + names[index], Toast.LENGTH_LONG).show();
+                                            } else {
+                                                message("선택한 주소가 일정에 반영되지 않았습니다. 일정 화면을 다시 열고 지정해 주세요.");
+                                            }
+                                        });
+                                    } catch (Exception e) { message("위치를 지정하지 못했습니다."); }
+                                }).setNegativeButton("취소", null).create();
+                            picker.setOnShowListener(dialog -> picker.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false));
+                            picker.show();
                         });
                     } catch (Exception e) { activity.runOnUiThread(() -> message("주소 검색을 사용할 수 없습니다. 네트워크를 확인하고 다시 시도해 주세요.")); }
                 }, "pickup-address").start();
