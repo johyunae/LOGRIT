@@ -41,8 +41,7 @@
     window.setPickupLocation = p => {
         const input = document.getElementById('f-pickup-location');
         if (!input) return;
-        const panel = document.querySelector?.('[data-pickup-features]');
-        if (panel) panel.hidden = !supported;
+        document.querySelectorAll('[data-pickup-features]').forEach(panel => { panel.hidden = !supported; });
         const label = labelFor('departure');
         if (!valid(p) || p.departure !== label) p = remembered(label);
         input.value = JSON.stringify(p);
@@ -100,9 +99,15 @@
     };
     window.navigatePickupLocation = () => {
         const pickup = window.pickupEditorValue();
-        if (!pickup) return alert('픽업 위치를 먼저 지정해 주세요.');
+        if (!pickup) return choose('departure');
         window.saveDraft();
         native('navigate', {pickup});
+    };
+    window.navigateDestinationLocation = () => {
+        const destination = window.destinationEditorValue();
+        if (!destination) return choose('arrival');
+        window.saveDraft();
+        native('navigate', {pickup: destination});
     };
     window.checkPickupLocation = () => {
         const pickup = window.pickupEditorValue();
