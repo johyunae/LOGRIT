@@ -98,7 +98,7 @@ public class LauncherActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setSupportMultipleWindows(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " LOGRIT-Android/" + BuildConfig.VERSION_CODE);
+        settings.setUserAgentString(settings.getUserAgentString() + " LOGRIT-Android/" + BuildConfig.VERSION_CODE + (BuildConfig.DEBUG ? " LOGRIT-Test" : ""));
         settings.setMediaPlaybackRequiresUserGesture(false);
         webView.setWebViewClient(new WebViewClient() {
             @Override
