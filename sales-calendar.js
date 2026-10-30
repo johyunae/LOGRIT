@@ -14,16 +14,18 @@
             else {
                 const date = key(year,month,day), total=totals.get(date)||0;
                 weekTotal += total;
+                const digits = total.toLocaleString('ko-KR').length;
+                const amountSize = digits <= 7 ? '12px' : digits <= 9 ? '10.5px' : '9px';
                 const color = total<0 ? '#f87171' : 'var(--text-bold)';
-                cells += `<button type="button" data-sales-date="${date}" onclick="window.openSalesCalendarDay(this.dataset.salesDate)" aria-label="${month+1}월 ${day}일 매출 ${total.toLocaleString('ko-KR')}원" style="min-width:0;min-height:64px;padding:6px 1px;border:1px solid var(--border-color);border-radius:6px;background:var(--sub-bg);text-align:center"><span style="display:block;font-size:12px;font-weight:700;color:${slot%7===0?'#f87171':slot%7===6?'#60a5fa':'var(--text-main)'}">${day}</span><span style="display:block;font-size:clamp(8px,2.1vw,11px);font-weight:800;white-space:nowrap;margin-top:7px;color:${color}">${totals.has(date)?total.toLocaleString('ko-KR'):'—'}</span></button>`;
+                cells += `<button type="button" data-sales-date="${date}" onclick="window.openSalesCalendarDay(this.dataset.salesDate)" aria-label="${month+1}월 ${day}일 매출 ${total.toLocaleString('ko-KR')}원" style="min-width:0;min-height:54px;padding:4px 0;border:1px solid var(--border-color);border-radius:6px;background:var(--sub-bg);text-align:center"><span style="display:block;font-size:15px;font-weight:800;color:${slot%7===0?'#f87171':slot%7===6?'#60a5fa':'var(--text-main)'}">${day}</span><span style="display:block;font-size:${amountSize};font-weight:800;white-space:nowrap;letter-spacing:-0.4px;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:4px;color:${color}">${totals.has(date)?total.toLocaleString('ko-KR'):'—'}</span></button>`;
             }
             if (slot%7===6) {
                 const start=Math.max(1,slot-6-first+1),end=Math.min(days,day);
-                cells += `<div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:6px 4px 10px;font-size:12px"><span style="color:var(--text-main)">${month+1}/${start}~${month+1}/${end} 주간 합계</span><strong style="color:${weekTotal<0?'#f87171':'var(--brand-color)'}">${weekTotal.toLocaleString('ko-KR')}원</strong></div>`;
+                cells += `<div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:4px 2px 6px;font-size:14px"><span style="color:var(--text-main)">${month+1}/${start}~${month+1}/${end} 주간 합계</span><strong style="color:${weekTotal<0?'#f87171':'var(--brand-color)'}">${weekTotal.toLocaleString('ko-KR')}원</strong></div>`;
                 weekTotal=0;
             }
         }
-        return `<section aria-label="매출 달력" style="margin:20px 12px 0"><h3 style="font-size:15px;font-weight:800;margin-bottom:8px">매출 달력</h3><p style="font-size:11px;color:var(--text-main);margin-bottom:12px">날짜별 금액 · 단위 원 · 주간 합계는 이번 달 날짜만 합산</p><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px">${['일','월','화','수','목','금','토'].map(d=>`<div style="text-align:center;font-size:11px;padding:4px">${d}</div>`).join('')}${cells}</div></section>`;
+        return `<section aria-label="매출 달력" style="margin:8px 4px 0"><p style="font-size:11px;color:var(--text-main);margin:0 4px 5px">단위 원 · 주간 합계는 이번 달 날짜만 합산</p><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px">${['일','월','화','수','목','금','토'].map(d=>`<div style="text-align:center;font-size:13px;font-weight:700;padding:3px">${d}</div>`).join('')}${cells}</div></section>`;
     };
     window.openSalesCalendarDay = date => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
