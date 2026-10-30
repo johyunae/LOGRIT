@@ -9,7 +9,7 @@ function setup(version = 11, storage = new Map()) {
     'f-arrival':{value:'국제'},'f-destination-location':{value:''},'destination-location-label':{textContent:''}
   };
   const calls = [], alerts = [];
-  const c = {window: {}, document: {getElementById: id => elements[id]}, navigator: {userAgent: `LOGRIT-Android/${version}`},
+  const c = {window: {}, document: {getElementById: id => elements[id], querySelectorAll: () => []}, navigator: {userAgent: `LOGRIT-Android/${version}`},
     db: [], localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)}, prompt: (text) => { calls.push(JSON.parse(text.slice('LOGRIT_PICKUP:'.length))); return 'ready'; }, alert: text => alerts.push(text)};
   c.window.saveDraft = () => {};
   vm.createContext(c); vm.runInContext(fs.readFileSync('pickup-location.js','utf8'), c);
@@ -23,7 +23,7 @@ test('manual check and TMAP navigation use exactly the selected coordinates', ()
 });
 test('changed pickup names invalidate saved coordinates and never navigate', () => {
   const {w,elements,calls,alerts} = setup(); w.setPickupLocation(place); elements['f-departure'].value='스테이온';
-  w.navigatePickupLocation(); assert.equal(w.pickupEditorValue(),null); assert.equal(calls.length,1); assert.equal(alerts.length,1);
+  w.navigatePickupLocation(); assert.equal(w.pickupEditorValue(),null); assert.equal(calls.at(-1).action,'choose'); assert.equal(calls.at(-1).role,'departure'); assert.equal(alerts.length,0);
 });
 test('automatic sync sends enabled locations only; deletion sends an empty replacement', () => {
   const {w,c,calls} = setup();
@@ -56,4 +56,12 @@ test('confirmed names are reused across schedules, while unconfirmed labels and 
   next.elements['f-departure'].value='다른 호텔'; next.w.refreshRouteLocations(); assert.equal(next.w.pickupEditorValue(),null);
   next.elements['f-departure'].value='BX123'; next.w.choosePickupLocation(); next.w.logritPickupChosen({...place,departure:'BX123'});
   const flight=setup(11,storage); flight.elements['f-departure'].value='BX123'; flight.w.setPickupLocation(null); assert.equal(flight.w.pickupEditorValue(),null);
+});
+
+test('destination shortcut sends only the destination and requests an address when missing', () => {
+  const {w,calls} = setup();
+  w.navigateDestinationLocation(); assert.equal(calls.at(-1).action,'choose'); assert.equal(calls.at(-1).role,'arrival');
+  w.setDestinationLocation({...place,departure:'국제',lat:35.17,lng:128.94});
+  w.navigateDestinationLocation(); assert.equal(calls.at(-1).action,'navigate');
+  assert.equal(calls.at(-1).pickup.lng,128.94); assert.equal(calls.at(-1).destination,undefined);
 });
