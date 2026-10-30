@@ -21,13 +21,13 @@
                 weekTotal += total;
                 const displayAmount = compactAmount(total);
                 const digits = displayAmount.length;
-                const amountSize = digits <= 5 ? '18px' : digits <= 7 ? '15px' : '13px';
+                const amountSize = digits <= 5 ? '16px' : digits <= 7 ? '14px' : '12px';
                 const color = total<0 ? '#f87171' : 'var(--text-bold)';
                 cells += `<button type="button" data-sales-date="${date}" onclick="window.openSalesCalendarDay(this.dataset.salesDate)" aria-label="${month+1}월 ${day}일 매출 ${total.toLocaleString('ko-KR')}원" style="min-width:0;min-height:60px;padding:4px 0;border:1px solid var(--border-color);border-radius:6px;background:var(--sub-bg);text-align:center"><span style="display:block;font-size:15px;font-weight:700;color:${slot%7===0?'#f87171':slot%7===6?'#60a5fa':'var(--text-main)'}">${day}</span><span style="display:block;font-size:${amountSize};font-weight:900;white-space:nowrap;letter-spacing:-0.7px;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:4px;color:${color}">${totals.has(date)?displayAmount:'—'}</span></button>`;
             }
             if (slot%7===6) {
                 const start=Math.max(1,slot-6-first+1),end=Math.min(days,day);
-                cells += `<div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:4px 2px 6px;font-size:16px"><span style="color:var(--text-main)">${month+1}/${start}~${month+1}/${end} 주간 합계</span><strong style="color:${weekTotal<0?'#f87171':'var(--brand-color)'}">${weekTotal.toLocaleString('ko-KR')}원</strong></div>`;
+                cells += `<div style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:4px 2px 6px;font-size:16px"><span style="color:var(--text-main)">${month+1}/${start}~${month+1}/${end} 주간 합계</span><strong style="font-size:18px;color:${weekTotal<0?'#f87171':'var(--brand-color)'}">${weekTotal.toLocaleString('ko-KR')}원</strong></div>`;
                 weekTotal=0;
             }
         }
