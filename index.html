@@ -1893,19 +1893,19 @@
                     <div class="space-y-2">
                         <input type="text" id="f-date" class="input-field" readonly inputmode="none" role="button" aria-label="일정 날짜 선택" aria-haspopup="dialog" onclick="window.openRecordDatePicker()" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.openRecordDatePicker(); }" onchange="window.refreshMemoPhotos()" required>
                         <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-                            <input type="text" id="f-departure" onchange="window.refreshRouteLocations()" placeholder="출발지 Departure" class="input-field">
+                            <div class="min-w-0"><input type="text" id="f-departure" onchange="window.refreshRouteLocations()" placeholder="출발지 Departure" class="input-field"><button data-pickup-features hidden type="button" class="btn-add rounded-lg mt-1 px-3 py-2 text-xs" onclick="window.navigatePickupLocation()" aria-label="현재 위치에서 출발지로 티맵 길안내">티맵 ↗</button></div>
                             <button type="button" onclick="window.swapRoute()" class="w-10 h-10 rounded-xl bg-sub border border-custom flex items-center justify-center active:scale-90 transition-transform cursor-pointer" aria-label="출발지 도착지 바꾸기"><i data-lucide="arrow-left-right" class="w-5 h-5"></i></button>
-                            <input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" placeholder="도착지 Arrival" class="input-field">
+                            <div class="min-w-0"><input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" placeholder="도착지 Arrival" class="input-field"><button data-pickup-features hidden type="button" class="btn-add rounded-lg mt-1 px-3 py-2 text-xs" onclick="window.navigateDestinationLocation()" aria-label="현재 위치에서 도착지로 티맵 길안내">티맵 ↗</button></div>
                         </div>
-                        <div data-pickup-features hidden class="bg-sub rounded-xl p-3 space-y-2 border border-custom">
+                        <details data-pickup-features hidden class="bg-sub rounded-xl p-3 border border-custom"><summary class="cursor-pointer text-sm font-bold">주소 · 자동 알림 설정</summary><div class="space-y-2 mt-3">
                             <input type="hidden" id="f-pickup-location"><input type="hidden" id="f-destination-location">
                             <p id="pickup-location-label" class="font-bold text-sm">픽업 위치를 지정해 주세요</p>
-                            <div class="flex gap-2 flex-wrap"><button type="button" class="btn-add p-2 rounded-xl" onclick="window.choosePickupLocation()">픽업 위치 지정</button><button type="button" class="btn-add p-2 rounded-xl" onclick="window.checkPickupLocation()">현재 위치 확인</button><button type="button" class="btn-primary p-2 rounded-xl" onclick="window.navigatePickupLocation()">티맵 픽업 길안내</button><button type="button" class="p-2" onclick="window.clearPickupLocation()">위치 해제</button></div>
+                            <div class="flex gap-2 flex-wrap"><button type="button" class="btn-add p-2 rounded-xl" onclick="window.choosePickupLocation()">픽업 위치 지정</button><button type="button" class="btn-add p-2 rounded-xl" onclick="window.checkPickupLocation()">현재 위치 확인</button><button type="button" class="p-2" onclick="window.clearPickupLocation()">위치 해제</button></div>
                             <p id="destination-location-label" class="font-bold text-sm">도착지 위치를 지정해 주세요</p>
-                            <div class="flex gap-2 flex-wrap"><button type="button" class="btn-add p-2 rounded-xl" onclick="window.chooseDestinationLocation()">도착지 위치 지정</button><button type="button" class="btn-primary p-2 rounded-xl" onclick="window.navigateScheduleRoute()">티맵 출발지 → 도착지</button></div>
+                            <div class="flex gap-2 flex-wrap"><button type="button" class="btn-add p-2 rounded-xl" onclick="window.chooseDestinationLocation()">도착지 위치 지정</button></div>
                             <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="f-pickup-auto" onchange="window.enablePickupAuto(this)">10분·5분 전 자동 위치 확인</label>
                             <p class="text-xs text-dim">정확한 호텔·승차장 주소를 지정해 주세요. 자동 확인은 절전 설정에 따라 늦어질 수 있습니다.</p>
-                        </div>
+                        </div></details>
                         <div class="grid grid-cols-2 gap-3">
                             <input type="text" id="f-time" placeholder="시간 Time (예: 710)" inputmode="text" oninput="window.autoFormatTime(this); window.saveDraft();" onblur="window.formatTimeOnBlur(this); window.saveDraft();" class="input-field font-mono"> 
                             <input type="number" id="f-people" placeholder="인원 People" class="input-field">
@@ -2047,7 +2047,7 @@
             else { el.value = isMinus ? '-' : ''; }
         };
     </script>
-    <script src="/LOGRIT/pickup-location.js?v=20261026-1"></script>
+    <script src="/LOGRIT/pickup-location.js?v=20261030-compact"></script>
     <script src="/LOGRIT/ai-connect.js?v=20261016-3"></script>
 </body>
 </html>
