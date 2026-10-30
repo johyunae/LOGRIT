@@ -220,6 +220,7 @@
         <button onclick="navTo('e_cal')" id="nav-e_cal" class="flex flex-col items-center gap-1 transition-all flex-1 text-dim cursor-pointer"><i data-lucide="calendar" class="w-6 h-6"></i><span class="text-[10px] font-bold">일정</span></button>
         <button onclick="navTo('list')" id="nav-list" class="flex flex-col items-center gap-1 transition-all flex-1 text-dim cursor-pointer"><i data-lucide="clipboard-list" class="w-6 h-6"></i><span class="text-[10px] font-bold">기록</span></button>
         <button onclick="navTo('s_cal')" id="nav-s_cal" class="flex flex-col items-center gap-1 transition-all flex-1 text-dim cursor-pointer"><i data-lucide="trending-up" class="w-6 h-6"></i><span class="text-[10px] font-bold">매출</span></button>
+        <button onclick="navTo('sales_calendar')" id="nav-sales_calendar" class="flex flex-col items-center gap-1 transition-all flex-1 text-dim cursor-pointer"><i data-lucide="calendar-days" class="w-6 h-6"></i><span class="text-[10px] font-bold whitespace-nowrap">매출 달력</span></button>
         <button onclick="navTo('home')" id="nav-home" class="flex flex-col items-center gap-1 transition-all flex-1 text-dim cursor-pointer"><i data-lucide="layout-grid" class="w-6 h-6"></i><span class="text-[10px] font-bold">홈</span></button>
     </nav>
 
@@ -886,7 +887,7 @@
 
         function render() {
             const root = document.getElementById('app-view');
-            ['e_cal', 'list', 's_cal', 'home'].forEach(id => { const btn = document.getElementById('nav-' + id); if(btn) btn.style.color = currentNav === id ? 'var(--brand-color)' : 'var(--text-main)'; });
+            ['e_cal', 'list', 's_cal', 'sales_calendar', 'home'].forEach(id => { const btn = document.getElementById('nav-' + id); if(btn) btn.style.color = currentNav === id ? 'var(--brand-color)' : 'var(--text-main)'; });
             const mPrefix = `${calContext.getFullYear()}-${String(calContext.getMonth()+1).padStart(2,'0')}`, todayStr = getLocalToday();
 
             if (currentNav === 'e_cal') {
@@ -970,41 +971,26 @@
                             <p class="text-[13px] font-bold uppercase tracking-widest mt-1 text-dim">${mPrefix} 통계 / ${mData.length}건의 기록</p>
                             <div class="grid grid-cols-[minmax(0,1fr)_64px] gap-2 mt-4 items-stretch"><input type="text" inputmode="numeric" placeholder="년.월 검색  예: 2026.9" class="input-field !py-2.5 text-[14px] min-w-0" onkeydown="window.handleMonthSearchKey(event)"><button onclick="window.searchCalendarMonth(this.previousElementSibling.value)" class="rounded-xl bg-sub border border-custom font-bold text-[13px] cursor-pointer" style="width:64px;min-width:64px;white-space:nowrap;word-break:keep-all;writing-mode:horizontal-tb;">검색</button></div>
                         </div>
-                        ${window.renderSalesCalendarPreview ? window.renderSalesCalendarPreview(db, calContext.getFullYear(), calContext.getMonth()) : ''}
                         <div class="px-5 pt-8">
                             <h3 class="text-[13px] font-bold mb-4 px-1 tracking-widest text-dim">거래처별 합계 (터치 시 해당 월 기록)</h3>
                             <div class="bg-modal border border-custom overflow-hidden rounded-3xl mb-10 shadow-sm">
                                 ${Object.entries(bySupp).sort((a,b)=>b[1].amount - a[1].amount).map(([n, d]) => `<div data-supplier="${paymentAttribute(n)}" onclick="viewSupplierMonthly(this.dataset.supplier)" class="flex justify-between items-center p-5 border-b border-custom active:bg-sub cursor-pointer"><div class="flex flex-col gap-1"><span class="font-bold text-[16px]">${paymentAttribute(n)}</span><span class="text-[12px] font-bold uppercase tracking-widest" style="color: var(--brand-color)">${d.count}건</span></div><span class="font-black text-[18px] opacity-90 ${d.amount < 0 ? 'text-red-400' : ''}">${formatKRW(d.amount)}원</span></div>`).join('') || '<p class="p-16 text-center text-dim text-[15px] font-bold">내역 없음</p>'}
                             </div>
-                            <h3 class="text-[13px] font-bold mb-4 px-1 tracking-widest text-dim">일별 매출 기록 (일합계 / 거래처별)</h3>
-                            <div class="bg-sub border border-custom rounded-3xl px-5 py-3 mb-20 shadow-sm">
-                                ${(() => {
-                                    const byDate = mData.reduce((acc, it) => { (acc[it.date] ||= []).push(it); return acc; }, {});
-                                    let monthRunning = 0;
-                                    return Object.entries(byDate).map(([date, items]) => {
-                                        const dayTotal = items.reduce((sum, it) => sum + Number(it.amount || 0), 0);
-                                        monthRunning += dayTotal;
-                                        const supplierTotals = items.reduce((acc, it) => {
-                                            const name = cleanText(it.supplier, '기타');
-                                            acc[name] = (acc[name] || 0) + Number(it.amount || 0);
-                                            return acc;
-                                        }, {});
-                                        const suppliersHtml = Object.entries(supplierTotals).sort((a,b) => b[1] - a[1]).map(([name, amount]) =>
-                                            `<div class="flex items-center justify-between py-1.5"><span class="text-[14px] font-bold text-dim">${paymentAttribute(name)}</span><span class="text-[14px] font-black ${amount < 0 ? 'text-red-400' : ''}">${formatKRW(amount)}원</span></div>`
-                                        ).join('');
-                                        return `<div class="py-5 border-b border-custom last:border-0">
-                                            <div class="flex justify-between items-end gap-3">
-                                                <span class="text-[20px] font-black text-important whitespace-nowrap">${date.split('-')[1]}월 ${date.split('-')[2]}일</span>
-                                                <span class="text-[16px] font-black text-right ${dayTotal < 0 ? 'text-red-400' : ''}" style="${dayTotal >= 0 ? 'color:var(--brand-color)' : ''}">일합계 ${formatKRW(dayTotal)}원</span>
-                                            </div>
-                                            <div class="mt-3 px-3 py-2 rounded-2xl bg-card border border-custom">${suppliersHtml}</div>
-                                            <div class="flex justify-end mt-2"><span class="text-[12px] font-bold text-dim">월 누적 ${formatKRW(monthRunning)}원</span></div>
-                                        </div>`;
-                                    }).join('');
-                                })() || '<p class="p-10 text-center text-dim text-[15px] font-bold">내역 없음</p>'}
-                            </div>
                         </div>
                     </div>`;
+            } else if (currentNav === 'sales_calendar') {
+                const monthRevenue = db.filter(r => typeof r.date === 'string' && r.date.startsWith(mPrefix)).reduce((sum,r) => sum + (Number(r.amount) || 0), 0);
+                root.innerHTML = `<div class="text-important" style="padding-bottom:160px">
+                    <div class="sticky-sub bg-primary border-b border-custom" style="padding:12px 20px">
+                        <div class="flex items-center justify-between">
+                            <button type="button" onclick="moveMonth(-1)" class="p-3 rounded-xl bg-sub" aria-label="매출 달력 이전 달">‹</button>
+                            <h2 class="text-xl font-black">${calContext.getFullYear()}년 ${calContext.getMonth()+1}월</h2>
+                            <button type="button" onclick="moveMonth(1)" class="p-3 rounded-xl bg-sub" aria-label="매출 달력 다음 달">›</button>
+                        </div>
+                        <p class="text-sm text-dim mt-3">월간 매출 합계</p><p class="text-2xl font-black" style="color:${monthRevenue<0?'#f87171':'var(--brand-color)'}">${formatKRW(monthRevenue)}원</p>
+                    </div>
+                    ${window.renderSalesCalendar ? window.renderSalesCalendar(db, calContext.getFullYear(), calContext.getMonth()) : '<p class="p-5">달력을 불러오지 못했습니다. 새로고침해 주세요.</p>'}
+                </div>`;
             } else if (currentNav === 'home') {
                 const todayItems = sortMaster(db.filter(x => x.date === todayStr)), monthTotal = db.filter(x => x.date.startsWith(mPrefix)).reduce((acc, cur) => acc + (Number(cur.amount) || 0), 0);
                 root.innerHTML = `<div class="animate-in fade-in px-5 pt-4 text-important text-left"><div class="bg-modal p-8 mb-8 border border-custom shadow-lg rounded-[2.5rem] text-left"><p class="text-[13px] uppercase tracking-[0.2em] mb-2 font-bold text-dim">Monthly Total Rev</p><h2 class="text-5xl font-black tracking-tighter text-important ${monthTotal < 0 ? 'text-red-400' : ''}">${formatKRW(monthTotal)}<span class="text-xl ml-1 font-light text-dim">원</span></h2><div class="mt-8 flex flex-col text-left"><span class="text-[13px] uppercase tracking-widest font-bold mb-1 text-dim">오늘 일정</span><span class="text-3xl font-black" style="color: var(--brand-color)">${todayItems.length}건</span></div></div><h3 class="text-[13px] uppercase px-1 mb-5 tracking-[0.3em] font-bold text-dim">Today's Activity</h3>${todayItems.map(it => renderItemCard(it, false, null, true)).join('') || '<p class="text-center py-20 text-dim text-[15px] font-bold">오늘 기록이 없습니다.</p>'}</div>`;
@@ -2048,7 +2034,7 @@
             else { el.value = isMinus ? '-' : ''; }
         };
     </script>
-    <script src="/LOGRIT/sales-calendar.js?v=20261030-1"></script>
+    <script src="/LOGRIT/sales-calendar.js?v=20261030-2"></script>
     <script src="/LOGRIT/pickup-location.js?v=20261030-compact"></script>
     <script src="/LOGRIT/ai-connect.js?v=20261016-3"></script>
 </body>
