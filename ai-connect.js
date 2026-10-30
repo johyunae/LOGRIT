@@ -27,7 +27,7 @@
  function backup(records){let old=[];try{old=JSON.parse(localStorage.getItem(BACKUPS)||'[]')}catch{};old.unshift({at:new Date().toISOString(),records});localStorage.setItem(BACKUPS,JSON.stringify(old.slice(0,3)));}
  function plan(records,remote,meta){
   const links=meta.links||{},byId=new Map(remote.map(r=>[r.id,r])),byKey=new Map(remote.map(r=>[r.requestKey,r]));
-  const next=[],uploads=[],nextLinks={...links},seen=new Set();
+  const next=[],uploads=[],nextLinks={...links},seen=new Set(),conflicts=[];
   for(const local of records){
    const id=String(local.id),link=links[id];const cloud=link?byId.get(link.remoteId):byKey.get('logrit-backup:'+id);
    if(!cloud){if(link)throw new Error('연결된 일정이 서버에 없습니다. 자동 덮어쓰기를 중단했습니다.');next.push({...local});uploads.push({id,local,revision:null,remoteId:null});continue;}
@@ -37,8 +37,14 @@
    if(!base&&cloud.originalJson){try{base=fingerprint(JSON.parse(cloud.originalJson))}catch{}}
    const localChanged=base?current!==base:current!==other;
    const remoteChanged=base?other!==base:true;
-   if(localChanged&&remoteChanged&&current!==other)throw new Error(`${local.date} ${local.time||''} 일정이 양쪽에서 변경됐습니다. 자동 덮어쓰기를 중단했습니다.`);
-   if(cloud.deleted){if(localChanged)throw new Error('삭제된 일정에 새 수정이 있어 동기화를 중단했습니다.');continue;}
+   // Preserve both sides of a conflict, while allowing unrelated rows to sync.
+   // Keep the old link fingerprint so a later pass cannot silently resolve it.
+   if((cloud.deleted&&localChanged)||(localChanged&&remoteChanged&&current!==other)){
+    next.push({...local});
+    conflicts.push({date:local.date,time:local.time||'',deleted:cloud.deleted===true});
+    continue;
+   }
+   if(cloud.deleted)continue;
    if(localChanged&&current!==other){next.push({...local});uploads.push({id,local,revision:cloud.revision,remoteId:cloud.id});}
    else {next.push({...local,...project(cloud),updatedAt:Date.parse(cloud.updatedAt)||Date.now()});nextLinks[id]={remoteId:cloud.id,revision:cloud.revision,fingerprint:other};}
   }
@@ -52,7 +58,7 @@
    next.push({...original,...project(cloud),id,updatedAt:Date.parse(cloud.updatedAt)||Date.now()});
    nextLinks[id]={remoteId:cloud.id,revision:cloud.revision,fingerprint:fingerprint(cloud)};
   }
-  return {next,uploads,nextLinks};
+  return {next,uploads,nextLinks,conflicts};
  }
  async function synchronize(){
   if(!enabled||busy||!ready)return;busy=true;
@@ -77,7 +83,9 @@
    db=work.next;
    if(window.syncPickupAlerts)window.syncPickupAlerts();
    if(!document.getElementById('modal-container')&&!document.getElementById('auto-input-modal'))render();
-   status('AI 연결됨 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 동기화');
+   const synced='AI 연결됨 · '+new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 동기화';
+   const conflict=work.conflicts[0];
+   status(conflict?synced+' · 충돌 '+work.conflicts.length+'건 보류 ('+conflict.date+' '+conflict.time+') · 휴대폰 내용 유지':synced);
   }finally{busy=false;}
  }
  window.connectLogritAI=()=>{
