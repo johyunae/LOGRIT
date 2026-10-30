@@ -1,10 +1,8 @@
-/* Revenue calendar preview: enabled only by the debug Android app marker. */
+/* Revenue calendar using existing schedule amounts. No stored records are changed. */
 (() => {
-    const isTest = () => /\bLOGRIT-Test\b/.test(navigator.userAgent || '');
     const amount = r => Number.isFinite(Number(r.amount)) ? Number(r.amount) : 0;
     const key = (y,m,d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    window.renderSalesCalendarPreview = (records, year, month) => {
-        if (!isTest()) return '';
+    window.renderSalesCalendar = (records, year, month) => {
         const prefix = `${year}-${String(month+1).padStart(2,'0')}-`;
         const totals = new Map();
         for (const r of records) if (typeof r.date === 'string' && r.date.startsWith(prefix)) totals.set(r.date,(totals.get(r.date)||0)+amount(r));
@@ -25,10 +23,10 @@
                 weekTotal=0;
             }
         }
-        return `<section aria-label="테스트 매출 달력" style="margin:20px 12px 0"><h3 style="font-size:15px;font-weight:800;margin-bottom:8px">매출 달력 <span style="font-size:11px;color:var(--brand-color)">테스트</span></h3><p style="font-size:11px;color:var(--text-main);margin-bottom:12px">날짜별 금액 · 단위 원 · 주간 합계는 이번 달 날짜만 합산</p><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px">${['일','월','화','수','목','금','토'].map(d=>`<div style="text-align:center;font-size:11px;padding:4px">${d}</div>`).join('')}${cells}</div></section>`;
+        return `<section aria-label="매출 달력" style="margin:20px 12px 0"><h3 style="font-size:15px;font-weight:800;margin-bottom:8px">매출 달력</h3><p style="font-size:11px;color:var(--text-main);margin-bottom:12px">날짜별 금액 · 단위 원 · 주간 합계는 이번 달 날짜만 합산</p><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px">${['일','월','화','수','목','금','토'].map(d=>`<div style="text-align:center;font-size:11px;padding:4px">${d}</div>`).join('')}${cells}</div></section>`;
     };
     window.openSalesCalendarDay = date => {
-        if (!isTest() || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
         const items=db.filter(r=>r.date===date && amount(r)!==0);
         document.getElementById('sales-day-preview')?.remove();
         const overlay=document.createElement('div'); overlay.id='sales-day-preview';
@@ -36,6 +34,9 @@
         const card=document.createElement('div');card.style.cssText='background:var(--modal-bg);color:var(--text-bold);width:100%;max-width:440px;max-height:75vh;overflow:auto;border-radius:20px;padding:20px';
         const title=document.createElement('h3');title.textContent=`${date} 매출`;title.style.cssText='font-weight:800;font-size:18px;margin-bottom:16px';card.append(title);
         if (!items.length) {const empty=document.createElement('p');empty.textContent='매출 내역이 없습니다.';card.append(empty);}
+        const bySupplier = new Map();
+        for (const r of items) {const name=String(r.supplier||'기타').trim()||'기타';bySupplier.set(name,(bySupplier.get(name)||0)+amount(r));}
+        for (const [name,total] of [...bySupplier].sort((a,b)=>b[1]-a[1])) {const row=document.createElement('div');row.style.cssText='padding:10px 0;font-size:14px;font-weight:700';row.textContent=`${name} 합계 · ${total.toLocaleString('ko-KR')}원`;card.append(row);}
         for (const r of items) {const row=document.createElement('div');row.style.cssText='padding:12px 0;border-bottom:1px solid var(--border-color);font-size:14px';row.textContent=`${r.time||''} ${r.supplier||'기타'} · ${amount(r).toLocaleString('ko-KR')}원`;card.append(row);}
         const sum=document.createElement('p');sum.textContent=`합계 ${items.reduce((n,r)=>n+amount(r),0).toLocaleString('ko-KR')}원`;sum.style.cssText='font-weight:800;margin:16px 0';card.append(sum);
         const close=document.createElement('button');close.type='button';close.textContent='닫기';close.className='btn-primary w-full';close.onclick=()=>overlay.remove();card.append(close);overlay.append(card);overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};document.body.append(overlay);close.focus();
