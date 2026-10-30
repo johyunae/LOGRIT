@@ -970,6 +970,7 @@
                             <p class="text-[13px] font-bold uppercase tracking-widest mt-1 text-dim">${mPrefix} 통계 / ${mData.length}건의 기록</p>
                             <div class="grid grid-cols-[minmax(0,1fr)_64px] gap-2 mt-4 items-stretch"><input type="text" inputmode="numeric" placeholder="년.월 검색  예: 2026.9" class="input-field !py-2.5 text-[14px] min-w-0" onkeydown="window.handleMonthSearchKey(event)"><button onclick="window.searchCalendarMonth(this.previousElementSibling.value)" class="rounded-xl bg-sub border border-custom font-bold text-[13px] cursor-pointer" style="width:64px;min-width:64px;white-space:nowrap;word-break:keep-all;writing-mode:horizontal-tb;">검색</button></div>
                         </div>
+                        ${window.renderSalesCalendarPreview ? window.renderSalesCalendarPreview(db, calContext.getFullYear(), calContext.getMonth()) : ''}
                         <div class="px-5 pt-8">
                             <h3 class="text-[13px] font-bold mb-4 px-1 tracking-widest text-dim">거래처별 합계 (터치 시 해당 월 기록)</h3>
                             <div class="bg-modal border border-custom overflow-hidden rounded-3xl mb-10 shadow-sm">
@@ -2047,6 +2048,7 @@
             else { el.value = isMinus ? '-' : ''; }
         };
     </script>
+    <script src="/LOGRIT/sales-calendar.js?v=20261030-1"></script>
     <script src="/LOGRIT/pickup-location.js?v=20261030-compact"></script>
     <script src="/LOGRIT/ai-connect.js?v=20261016-3"></script>
 </body>
