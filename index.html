@@ -1950,7 +1950,6 @@
                             <input type="hidden" id="f-import-link-id">
                         </div>
                     </div>
-                    ${id ? `<div id="single-schedule-backup" class="mt-6"><button type="button" onclick="window.exportSingleSchedule()" class="w-full btn-copy py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2"><i data-lucide="download" class="w-5 h-5"></i> 이 스케줄만 백업</button><p class="text-[12px] text-dim text-center mt-2">저장된 내용만 백업합니다. 수정 중이면 먼저 저장해 주세요.</p></div>` : ''}
                     <div id="form-actions" class="flex gap-3">
                         ${id ? `<button type="button" onclick="window.deleteItemDirect('${id}')" id="delete-btn" class="flex-1 btn-del py-4.5 rounded-2xl font-bold text-center text-[15px]">삭제 Del</button>` : ''}
                         ${id ? `<button type="button" onclick="window.startCopy()" class="flex-1 btn-copy py-4.5 rounded-2xl font-bold text-center text-[15px]">복사 Copy</button>` : ''}
