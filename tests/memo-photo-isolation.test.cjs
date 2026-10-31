@@ -70,3 +70,21 @@ test('assigning an old photo preserves its image and moves it below the selected
     assert.ok(a.run(`renderSchedulePhotos('second')`).includes('legacy'));
     assert.equal(a.run(`renderUnassignedPhotos('2026-10-23')`),'');
 });
+test('expanded day shows date photos before schedules and keeps owned photos with their memo',()=>{
+    const a=app();
+    a.nodes['app-view']={innerHTML:''};
+    Object.assign(a.c,{currentNav:'e_cal',calContext:new Date(2026,10,1),selectedDate:'2026-11-01',showAmounts:false,
+        getLocalToday:()=> '2026-11-01',sortMaster:rows=>rows,getHoliday:()=>'',getRecordPayment:()=>null,
+        renderCardPayment:()=>'',smartTimeFormat:value=>value,cleanText:(value,fallback='')=>value||fallback,
+        formatRouteLabel:value=>value||'',monthNamesEn:Array(12).fill('Month')});
+    a.run(`db=[{id:'first',date:'2026-11-01',note:'FIRST_MEMO',time:'09:00'}, {id:'second',date:'2026-11-01',note:'SECOND_MEMO',time:'16:00'}]; calendarPhotoIndex=[{id:'legacy',date:'2026-11-01',thumbnail:'DATE_PHOTO'},{id:'owned',recordId:'first',date:'2026-11-01',thumbnail:'OWNED_PHOTO'}];`);
+    vm.runInContext(html.slice(html.indexOf('        function render()'),html.indexOf('        function validateSingleScheduleBackup')),a.c);
+    a.c.render();
+    const day=a.nodes['app-view'].innerHTML.split('class="daily-inline"')[1];
+    assert.ok(day.indexOf('DATE_PHOTO')>=0);
+    assert.ok(day.indexOf('DATE_PHOTO')<day.indexOf('FIRST_MEMO'));
+    assert.ok(day.indexOf('OWNED_PHOTO')>day.indexOf('FIRST_MEMO'));
+    assert.ok(day.indexOf('OWNED_PHOTO')<day.indexOf('SECOND_MEMO'));
+    assert.equal((day.match(/DATE_PHOTO/g)||[]).length,1);
+    assert.ok(!day.includes('window.pickCalendarPhotos'));
+});
