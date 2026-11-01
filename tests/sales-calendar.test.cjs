@@ -10,3 +10,18 @@ test('daily and weekly totals include corrections and exclude dates outside the 
 test('leap years and six-row months retain every day',()=>{
  for(const [y,m,days,rows] of [[2028,1,29,5],[2026,7,31,6]]){const html=render('LOGRIT-Test',[],y,m);assert.equal((html.match(/data-sales-date=/g)||[]).length,days);assert.equal((html.match(/주간 합계<\/span>/g)||[]).length,rows);}
 });
+
+test('daily supplier totals, corrections, escaping, and month isolation',()=>{
+ const records=[{date:'2026-11-01',supplier:'LSC',amount:100000},{date:'2026-11-01',supplier:'LSC',amount:50000},{date:'2026-11-01',supplier:'뉴새한',amount:80000},{date:'2026-11-02',supplier:'LSC',amount:-10000},{date:'2026-10-31',supplier:'다른달',amount:999999},{date:'2026-11-03',supplier:'무효',amount:'invalid'},{date:'2026-11-31',supplier:'잘못된날짜',amount:10}];
+ const before=JSON.stringify(records), html=render('',records,2026,10).split('aria-label="일별 거래처 합계"')[1];
+ for(const text of ['LSC','150,000원','뉴새한','80,000원','하루 합계','230,000원','-10,000원']) assert.ok(html.includes(text),text);
+ assert.ok(html.indexOf('150,000원')<html.indexOf('하루 합계'));
+ assert.ok(html.indexOf('80,000원')<html.indexOf('하루 합계'));
+ assert.equal(html.split('data-sales-summary-date=').length-1,2);
+ for(const text of ['다른달','무효','잘못된날짜']) assert.ok(!html.includes(text));
+ assert.equal(JSON.stringify(records),before);
+ const zero=render('',[{date:'2026-11-01',supplier:'<img onerror="x">',amount:10},{date:'2026-11-01',supplier:' ',amount:-10}],2026,10).split('aria-label="일별 거래처 합계"')[1];
+ assert.ok(zero.includes('&lt;img onerror=&quot;x&quot;&gt;'));
+ assert.ok(!zero.includes('<img'));assert.ok(zero.includes('기타'));assert.ok(zero.includes('>0원'));
+ assert.ok(render('',[],2026,10).includes('이번 달 매출 내역이 없습니다'));
+});

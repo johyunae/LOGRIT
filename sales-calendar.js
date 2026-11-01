@@ -7,6 +7,27 @@
         return (Math.abs(value) % 1000 ? '≈' : '') + (value < 0 ? '-' : '') + rounded.toLocaleString('ko-KR', {maximumFractionDigits:1}) + '만';
     };
     const key = (y,m,d) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    const dailySupplierSummary = (records, year, month) => {
+        const dates = new Map();
+        const days = new Date(year,month+1,0).getDate();
+        for (let day=1;day<=days;day++) dates.set(key(year,month,day),new Map());
+        for (const record of records) {
+            const suppliers = dates.get(record.date), value = amount(record);
+            if (!suppliers || value === 0) continue;
+            const name = String(record.supplier || '기타').trim() || '기타';
+            suppliers.set(name,(suppliers.get(name)||0)+value);
+        }
+        let groups = '';
+        for (const [date,suppliers] of dates) {
+            if (!suppliers.size) continue;
+            const rows = [...suppliers].sort((a,b)=>b[1]-a[1]);
+            const total = rows.reduce((sum,row)=>sum+row[1],0);
+            groups += `<section data-sales-summary-date="${date}" style="padding:12px 0;border-bottom:1px solid var(--border-color)"><h4 style="font-size:17px;font-weight:800;margin:0 0 8px;color:var(--text-bold)">${month+1}월 ${Number(date.slice(-2))}일</h4>${rows.map(([name,value])=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:16px"><span style="min-width:0;overflow-wrap:anywhere">${escapeHtml(name)}</span><span style="flex-shrink:0;font-variant-numeric:tabular-nums;${value<0?'color:#f87171':''}">${value.toLocaleString('ko-KR')}원</span></div>`).join('')}<div style="display:flex;justify-content:space-between;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-color);font-size:18px;font-weight:800;color:${total<0?'#f87171':'var(--brand-color)'}"><span>하루 합계</span><span style="font-variant-numeric:tabular-nums">${total.toLocaleString('ko-KR')}원</span></div></section>`;
+        }
+        return `<section aria-label="일별 거래처 합계" style="margin:20px 4px 8px;color:var(--text-main)"><h3 style="font-size:20px;font-weight:800;color:var(--text-bold);margin:0 0 8px">일별 거래처 합계</h3>${groups || '<p style="padding:12px 0">이번 달 매출 내역이 없습니다.</p>'}</section>`;
+    };
     window.renderSalesCalendar = (records, year, month) => {
         const prefix = `${year}-${String(month+1).padStart(2,'0')}-`;
         const totals = new Map();
@@ -31,7 +52,7 @@
                 weekTotal=0;
             }
         }
-        return `<section aria-label="매출 달력" style="margin:8px 4px 0"><p style="font-size:13px;color:var(--text-main);margin:0 4px 5px">일별 금액: 만 단위 · ≈는 반올림 · 정확한 금액은 날짜 선택</p><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px">${['일','월','화','수','목','금','토'].map(d=>`<div style="text-align:center;font-size:12px;font-weight:600;padding:3px">${d}</div>`).join('')}${cells}</div></section>`;
+        return `<section aria-label="매출 달력" style="margin:8px 4px 0"><p style="font-size:13px;color:var(--text-main);margin:0 4px 5px">일별 금액: 만 단위 · ≈는 반올림 · 정확한 금액은 날짜 선택</p><div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px">${['일','월','화','수','목','금','토'].map(d=>`<div style="text-align:center;font-size:12px;font-weight:600;padding:3px">${d}</div>`).join('')}${cells}</div>${dailySupplierSummary(records, year, month)}</section>`;
     };
     window.openSalesCalendarDay = date => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
