@@ -376,7 +376,7 @@
                 tx.onerror = tx.onabort = () => reject(tx.error || new Error('Photo save failed'));
                 try {
                     if (replace) store.clear();
-                    if (deleteId !== null) store.delete(deleteId);
+                    if (deleteId !== null) (Array.isArray(deleteId) ? deleteId : [deleteId]).forEach(id => store.delete(id));
                     rows.forEach(row => store.put(row));
                 } catch(error) { tx.abort(); reject(error); }
             });
@@ -2021,7 +2021,23 @@
             localStorage.removeItem('logrit_draft_data'); 
             sync(); 
         };
-        window.deleteItemDirect = (id) => { if(confirm('삭제하시겠습니까?')) { db = db.filter(x => String(x.id) !== id); document.getElementById('modal-container').remove(); localStorage.removeItem('logrit_draft_data'); sync(); } };
+        window.deleteItemDirect = async (id) => {
+            if (!confirm('일정과 연결된 사진을 함께 삭제하시겠습니까?')) return;
+            id = String(id);
+            try {
+                const rows = await readCalendarPhotos();
+                const photoIds = rows.filter(photo => String(photo.recordId || '') === id).map(photo => photo.id);
+                await writeCalendarPhotos([], false, photoIds);
+                calendarPhotoIndex = calendarPhotoIndex.filter(photo => !photoIds.includes(photo.id));
+                db = db.filter(record => String(record.id) !== id);
+                document.getElementById('modal-container')?.remove();
+                localStorage.removeItem('logrit_draft_data');
+                sync();
+            } catch (error) {
+                console.error('Schedule/photo deletion failed:', error);
+                showToast('삭제를 완료하지 못했습니다. 다시 시도해 주세요.');
+            }
+        };
         
         window.autoFormatTime = (el) => { el.value = el.value.replace(/[^0-9:]/g, ''); };
         window.formatTimeOnBlur = (el) => { let v = el.value.replace(/[^0-9]/g, ''); if(!v) return; if(v.length<=2) el.value = v.padStart(2,'0')+':00'; else if(v.length===3) el.value = '0'+v[0]+':'+v.slice(1,3); else el.value = v.slice(0,2)+':'+v.slice(2,4); };
