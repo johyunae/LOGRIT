@@ -88,3 +88,28 @@ test('expanded day shows date photos before schedules and keeps owned photos wit
     assert.equal((day.match(/DATE_PHOTO/g)||[]).length,1);
     assert.ok(!day.includes('window.pickCalendarPhotos'));
 });
+
+function deletionApp() {
+    const a=app();
+    a.nodes['modal-container']={remove(){}};
+    Object.assign(a.c,{confirm:()=>true,localStorage:{removeItem(){}},sync(){}});
+    const start=html.indexOf('        window.deleteItemDirect =');
+    const end=html.indexOf('\n        };',start)+11;
+    vm.runInContext(html.slice(start,end),a.c);
+    a.run(`db=[{id:123,date:'2026-11-02'},{id:'keep',date:'2026-11-02'}]; rows=[{id:'owned',recordId:'123'},{id:'other',recordId:'keep'},{id:'legacy'}]; calendarPhotoIndex=rows.slice(); writeCalendarPhotos=async (values,replace,ids)=>{rows=rows.filter(photo=>!ids.includes(photo.id));};`);
+    return a;
+}
+test('deleting a schedule deletes only its linked photos, including numeric ids',async()=>{
+    const a=deletionApp();await a.c.deleteItemDirect(123);
+    assert.equal(a.run('db.map(x=>x.id).join()'),'keep');
+    assert.equal(a.run('rows.map(x=>x.id).join()'),'other,legacy');
+    assert.equal(a.run('calendarPhotoIndex.map(x=>x.id).join()'),'other,legacy');
+});
+test('cancelled deletion and photo storage failure preserve schedules and photos',async()=>{
+    const a=deletionApp();a.c.confirm=()=>false;await a.c.deleteItemDirect(123);
+    assert.equal(a.run('db.length'),2);assert.equal(a.run('rows.length'),3);
+    a.c.confirm=()=>true;a.c.console={error(){}};
+    a.run(`writeCalendarPhotos=async()=>{throw new Error('storage unavailable')}`);
+    await a.c.deleteItemDirect(123);
+    assert.equal(a.run('db.length'),2);assert.equal(a.run('calendarPhotoIndex.length'),3);
+});
