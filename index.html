@@ -1931,11 +1931,11 @@
                     <div class="space-y-2">
                         <input type="text" id="f-date" class="input-field" readonly inputmode="none" role="button" aria-label="일정 날짜 선택" aria-haspopup="dialog" onclick="window.openRecordDatePicker()" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.openRecordDatePicker(); }" onchange="window.refreshMemoPhotos()" required>
                         <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-                            <div class="min-w-0"><input type="text" id="f-departure" onchange="window.refreshRouteLocations()" placeholder="출발지 Departure" class="input-field"><button data-pickup-features hidden type="button" class="btn-add rounded-lg mt-1 px-3 py-2 text-xs" onclick="window.navigatePickupLocation()" aria-label="현재 위치에서 출발지로 티맵 길안내">티맵 ↗</button></div>
+                            <div class="min-w-0"><input type="text" id="f-departure" onchange="window.refreshRouteLocations()" placeholder="출발지 Departure" class="input-field"><button data-pickup-features hidden type="button" class="btn-add rounded-lg mt-1 px-3 py-2 text-sm w-full" onclick="window.navigatePickupLocation()" id="pickup-navigate-button" aria-label="현재 위치에서 출발지로 티맵 길안내">출발지 위치 연결</button></div>
                             <button type="button" onclick="window.swapRoute()" class="w-10 h-10 rounded-xl bg-sub border border-custom flex items-center justify-center active:scale-90 transition-transform cursor-pointer" aria-label="출발지 도착지 바꾸기"><i data-lucide="arrow-left-right" class="w-5 h-5"></i></button>
-                            <div class="min-w-0"><input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" placeholder="도착지 Arrival" class="input-field"><button data-pickup-features hidden type="button" class="btn-add rounded-lg mt-1 px-3 py-2 text-xs" onclick="window.navigateDestinationLocation()" aria-label="현재 위치에서 도착지로 티맵 길안내">티맵 ↗</button></div>
+                            <div class="min-w-0"><input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" placeholder="도착지 Arrival" class="input-field"><button data-pickup-features hidden type="button" class="btn-add rounded-lg mt-1 px-3 py-2 text-sm w-full" onclick="window.navigateDestinationLocation()" id="destination-navigate-button" aria-label="현재 위치에서 도착지로 티맵 길안내">도착지 위치 연결</button></div>
                         </div>
-                        <details data-pickup-features hidden class="bg-sub rounded-xl p-3 border border-custom"><summary class="cursor-pointer text-sm font-bold">주소 · 자동 알림 설정</summary><div class="space-y-2 mt-3">
+                        <details data-pickup-features hidden class="bg-sub rounded-xl p-3 border border-custom"><summary class="cursor-pointer text-sm font-bold">위치 변경 · 자동 알림</summary><div class="space-y-2 mt-3">
                             <input type="hidden" id="f-pickup-location"><input type="hidden" id="f-destination-location">
                             <p id="pickup-location-label" class="font-bold text-sm">픽업 위치를 지정해 주세요</p>
                             <div class="flex gap-2 flex-wrap"><button type="button" class="btn-add p-2 rounded-xl" onclick="window.choosePickupLocation()">픽업 위치 지정</button><button type="button" class="btn-add p-2 rounded-xl" onclick="window.checkPickupLocation()">현재 위치 확인</button><button type="button" class="p-2" onclick="window.clearPickupLocation()">위치 해제</button></div>
@@ -2102,7 +2102,7 @@
         };
     </script>
     <script src="/LOGRIT/sales-calendar.js?v=20261101-1"></script>
-    <script src="/LOGRIT/pickup-location.js?v=20261030-compact"></script>
+    <script src="/LOGRIT/pickup-location.js?v=20261104-clear"></script>
     <script src="/LOGRIT/ai-connect.js?v=20261016-3"></script>
 </body>
 </html>
