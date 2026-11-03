@@ -196,6 +196,21 @@
         .record-editor-shell > #record-form { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding-bottom:24px; }
         .record-editor-shell #form-actions:not(:empty) { margin-top:24px; }
         .record-editor-shell > #record-form { padding-bottom:max(24px, env(safe-area-inset-bottom)); }
+
+        .route-simple { border:1px solid var(--border-color);border-radius:16px;padding:4px 12px;background:var(--input-bg); }
+        .route-simple-row { display:flex;gap:10px;align-items:center;padding:10px 0; }
+        .route-simple-row + .route-simple-row { border-top:1px solid var(--border-color); }
+        .route-simple-label { font-size:12px;font-weight:700;color:var(--text-main);flex-shrink:0; }
+        .route-simple-place { flex:1;min-width:0; }
+        .route-simple-place .input-field { padding:4px 0;border:0;border-radius:0;background:transparent;font-size:17px; }
+        .route-simple-place details { font-size:12px;color:var(--text-main);line-height:1.5;overflow-wrap:anywhere; }
+        .route-simple-place summary { cursor:pointer; }
+        .route-simple-nav { padding:10px 12px;border-radius:10px;color:white;background:var(--brand-color);font-size:13px;font-weight:800;flex-shrink:0; }
+        .route-simple-swap { display:block;margin:0 0 8px auto;font-size:12px;color:var(--text-main);padding:6px; }
+        .record-editor-shell > div:first-child > div:first-child { min-width:0; }
+        .record-editor-shell h3 { white-space:nowrap;font-size:22px; }
+        .record-editor-shell h3 + span { display:none; }
+
     </style>
     <script src="/LOGRIT/booking-image.js?v=20261103-1"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -1930,10 +1945,10 @@
                     <button type="button" onclick="window.openAutoInputModal()" class="w-full btn-add py-3.5 rounded-2xl font-black mb-3 flex items-center justify-center gap-2"><i data-lucide="sparkles" class="w-5 h-5"></i> 카톡/이미지 자동 입력</button>
                     <div class="space-y-2">
                         <input type="text" id="f-date" class="input-field" readonly inputmode="none" role="button" aria-label="일정 날짜 선택" aria-haspopup="dialog" onclick="window.openRecordDatePicker()" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.openRecordDatePicker(); }" onchange="window.refreshMemoPhotos()" required>
-                        <div class="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-                            <div class="min-w-0"><input type="text" id="f-departure" onchange="window.refreshRouteLocations()" placeholder="출발지 Departure" class="input-field"><button data-pickup-features hidden type="button" class="btn-add rounded-lg mt-1 px-3 py-2 text-sm w-full" onclick="window.navigatePickupLocation()" id="pickup-navigate-button" aria-label="현재 위치에서 출발지로 티맵 길안내">출발지 위치 연결</button></div>
-                            <button type="button" onclick="window.swapRoute()" class="w-10 h-10 rounded-xl bg-sub border border-custom flex items-center justify-center active:scale-90 transition-transform cursor-pointer" aria-label="출발지 도착지 바꾸기"><i data-lucide="arrow-left-right" class="w-5 h-5"></i></button>
-                            <div class="min-w-0"><input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" placeholder="도착지 Arrival" class="input-field"><button data-pickup-features hidden type="button" class="btn-add rounded-lg mt-1 px-3 py-2 text-sm w-full" onclick="window.navigateDestinationLocation()" id="destination-navigate-button" aria-label="현재 위치에서 도착지로 티맵 길안내">도착지 위치 연결</button></div>
+                        <div class="route-simple">
+                            <div class="route-simple-row"><span class="route-simple-label">출발</span><div class="route-simple-place"><input type="text" id="f-departure" onchange="window.refreshRouteLocations()" placeholder="출발지" class="input-field"><details data-pickup-features hidden><summary id="departure-navigation-preview">주소 연결 필요</summary></details></div><button data-pickup-features hidden id="pickup-navigate-button" type="button" onclick="window.navigatePickupLocation()" class="route-simple-nav">티맵 ↗</button></div>
+                            <div class="route-simple-row"><span class="route-simple-label">도착</span><div class="route-simple-place"><input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" placeholder="도착지" class="input-field"><details data-pickup-features hidden><summary id="arrival-navigation-preview">주소 연결 필요</summary></details></div><button data-pickup-features hidden id="destination-navigate-button" type="button" onclick="window.navigateDestinationLocation()" class="route-simple-nav">티맵 ↗</button></div>
+                            <button type="button" onclick="window.swapRoute()" class="route-simple-swap">출발·도착 바꾸기 ⇅</button>
                         </div>
                         <details data-pickup-features hidden class="bg-sub rounded-xl p-3 border border-custom"><summary class="cursor-pointer text-sm font-bold">자동 알림 설정</summary><div class="space-y-2 mt-3">
                             <input type="hidden" id="f-pickup-location"><input type="hidden" id="f-destination-location">
@@ -2102,7 +2117,7 @@
         };
     </script>
     <script src="/LOGRIT/sales-calendar.js?v=20261101-1"></script>
-    <script src="/LOGRIT/pickup-location.js?v=20261104-clear"></script>
+    <script src="/LOGRIT/pickup-location.js?v=20261104-simple"></script>
     <script src="/LOGRIT/ai-connect.js?v=20261016-3"></script>
 </body>
 </html>
