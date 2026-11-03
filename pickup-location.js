@@ -30,6 +30,25 @@
         } catch (_) { alert('이번 일정에는 위치를 지정했습니다. 장소 연결을 기억할 저장 공간이 부족합니다.'); }
     };
     const labelFor = role => document.getElementById(role === 'arrival' ? 'f-arrival' : 'f-departure')?.value || '';
+
+    const refreshNavigationButton = (role, place) => {
+        const button = document.getElementById(role === 'arrival' ? 'destination-navigate-button' : 'pickup-navigate-button');
+        if (!button) return;
+        const title = role === 'arrival' ? '도착지' : '출발지';
+        button.textContent = place ? title + '로 길안내 ↗' : title + ' 위치 연결';
+        button.title = place ? '티맵: ' + place.name : '정확한 주소를 먼저 선택해 주세요';
+        button.setAttribute('aria-label', button.title);
+        let preview = document.getElementById(role + '-navigation-preview');
+        if (!preview) {
+            preview = document.createElement('p');
+            preview.id = role + '-navigation-preview';
+            preview.style.cssText = 'font-size:13px;line-height:1.4;margin:6px 0;overflow-wrap:anywhere;color:var(--text-bold)';
+            button.after(preview);
+        }
+        preview.textContent = place ? '연결된 장소: ' + place.name : '주소 연결 필요';
+        preview.hidden = !supported;
+    };
+
     let choosing = null;
     window.pickupEditorValue = () => {
         try {
@@ -45,6 +64,7 @@
         const label = labelFor('departure');
         if (!valid(p) || p.departure !== label) p = remembered(label);
         input.value = JSON.stringify(p);
+        refreshNavigationButton('departure', p);
         document.getElementById('pickup-location-label').textContent = p ? '타는 곳: ' + p.name : '픽업 위치를 지정해 주세요';
         document.getElementById('f-pickup-auto').checked = !!p?.auto;
     };
@@ -60,6 +80,7 @@
         const label = labelFor('arrival');
         if (!valid(p) || p.departure !== label) p = remembered(label);
         input.value = JSON.stringify(p);
+        refreshNavigationButton('arrival', p);
         document.getElementById('destination-location-label').textContent = p ? '내리는 곳: ' + p.name : '도착지 위치를 지정해 주세요';
     };
     window.refreshRouteLocations = () => {
