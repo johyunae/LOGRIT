@@ -35,18 +35,22 @@
         const button = document.getElementById(role === 'arrival' ? 'destination-navigate-button' : 'pickup-navigate-button');
         if (!button) return;
         const title = role === 'arrival' ? '도착지' : '출발지';
-        button.textContent = place ? title + '로 길안내 ↗' : title + ' 위치 연결';
-        button.title = place ? '티맵: ' + place.name : '정확한 주소를 먼저 선택해 주세요';
+        button.textContent = place ? '티맵 ↗' : '연결';
+        button.title = place ? title + '로 길안내: ' + place.name : title + ' 주소 연결';
         button.setAttribute('aria-label', button.title);
-        let preview = document.getElementById(role + '-navigation-preview');
-        if (!preview) {
-            preview = document.createElement('p');
-            preview.id = role + '-navigation-preview';
-            preview.style.cssText = 'font-size:13px;line-height:1.4;margin:6px 0;overflow-wrap:anywhere;color:var(--text-bold)';
-            button.after(preview);
+        const preview = document.getElementById(role + '-navigation-preview');
+        if (!preview) return;
+        preview.textContent = place ? '연결됨 · 주소 보기' : '주소 연결 필요';
+        const details = preview.parentElement;
+        let address = details.querySelector('[data-linked-address]');
+        if (!address) {
+            address = document.createElement('p');
+            address.dataset.linkedAddress = '';
+            address.style.cssText = 'margin:6px 0';
+            details.append(address);
         }
-        preview.textContent = place ? '연결된 장소: ' + place.name : '주소 연결 필요';
-        preview.hidden = !supported;
+        address.textContent = place ? place.name : '티맵 옆 연결 버튼에서 주소를 선택해 주세요.';
+
     };
 
     let choosing = null;
