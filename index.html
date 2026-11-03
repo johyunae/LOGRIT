@@ -99,8 +99,8 @@
         .calendar-photo-viewer-head button { padding:12px; }
         .calendar-photo-viewer img { flex:1; min-height:0; width:100%; object-fit:contain; }
         .calendar-photo-delete { align-self:center; color:#f87171; padding:12px 24px; border:1px solid #f87171; border-radius:12px; }
-        .card-payment-status { display:inline-flex; align-items:center; margin:2px 0 8px; padding:8px 10px; border:1px solid var(--brand-color); border-radius:10px; color:var(--brand-color); background:var(--sub-bg); font-size:12px; font-weight:800; line-height:1.35; cursor:pointer; text-align:left; }
-        #f-card-payment-panel .card-payment-status { font-size:16px; padding:12px 14px; border-radius:12px; }
+        .card-payment-status { display:inline-flex; align-items:center; margin:0 2px 3px 0; padding:4px 8px; border:1px solid var(--brand-color); border-radius:10px; color:var(--brand-color); background:var(--sub-bg); font-size:14px; font-weight:800; line-height:1.3; cursor:pointer; text-align:left; }
+        #f-card-payment-panel .card-payment-status { font-size:16px; padding:6px 10px; border-radius:12px; }
         #f-card-payment-done { width:26px; height:26px; flex-shrink:0; accent-color:var(--brand-color); }
         #f-amount-display { font-size:18px; font-weight:700; }
         .card-payment-status[hidden] { display:none; }
@@ -134,7 +134,9 @@
         .daily-inline-item.has-color::before { content:""; position:absolute; left:0; top:0; bottom:0; width:7px; border-radius:4px; background:var(--item-color); }
         .daily-inline-time { width:68px; min-width:68px; text-align:center; font-size:16px; font-weight:900; color:var(--brand-color); }
         .daily-inline-text { min-width:0; flex:1; font-size:16px; font-weight:700; white-space:normal; overflow:visible; line-height:1.4; word-break:break-word; }
-        .daily-inline-mission { display:block; }
+        .daily-inline-mission { display:flex; flex-wrap:wrap; gap:3px 4px; margin-bottom:3px; }
+        .daily-inline-mission:empty { display:none; }
+        .daily-inline-mission .card-payment-status { margin:0; }
         .daily-inline-detail { display:block; margin-top:2px; font-size:14px; font-weight:500; color:var(--text-main); white-space:normal; line-height:1.35; }
         .daily-inline-amount { margin-left:auto; padding-left:8px; white-space:nowrap; font-size:13px; font-weight:900; color:var(--brand-color); }
         .daily-inline-empty { padding:12px 2px 8px; text-align:center; font-size:13px; font-weight:700; color:var(--text-main); }
@@ -176,7 +178,7 @@
         #record-list-content .record-card-foot { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; font-size:11px; margin-top:2px; gap:8px; white-space:nowrap; }
         #record-list-content .record-card-foot > span { min-width:0; overflow:hidden; text-overflow:ellipsis; }
         #record-list-content .record-card-amount { font-size:13px; white-space:nowrap; }
-        #record-list-content .card-payment-status { font-size:14px; padding:5px 8px; margin-bottom:5px; }
+        #record-list-content .card-payment-status { font-size:15px; padding:4px 8px; margin-bottom:3px; }
 
         #search-color-filters { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; max-height:148px; overflow-y:auto; }
         .search-color-filter { display:inline-flex; align-items:center; gap:6px; min-height:44px; max-width:100%; padding:6px 10px; border:1px solid var(--border-color); border-radius:12px; background:var(--sub-bg); color:var(--text-bold); font-size:13px; font-weight:700; cursor:pointer; overflow-wrap:anywhere; }
@@ -702,7 +704,7 @@
                 <div>
                     <label class="card-payment-status w-full gap-3">
                         <input type="checkbox" class="w-5 h-5" ${check.done ? 'checked' : ''} onchange="window.changeExtraCheck(${index}, 'toggle')">
-                        <span>${paymentAttribute(check.label)} · 완료</span>
+                        <span>${paymentAttribute(check.label)}</span>
                     </label>
                     <div class="flex gap-4 mb-2 text-[12px] text-dim">
                         <button type="button" onclick="window.changeExtraCheck(${index}, 'edit')">문구 수정</button>
@@ -757,10 +759,10 @@
 
         function renderCardPayment(item) {
             const payment = getRecordPayment(item);
-            const extra = getExtraChecks(item).map((check, index) => `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleExtraCheck(this.dataset.paymentId, ${index})" aria-pressed="${check.done}" class="card-payment-status ${check.done ? 'is-paid' : ''}">${check.done ? '✓' : '□'} ${paymentAttribute(check.label)} · ${check.done ? '완료' : '미완료'}</button>`).join('');
+            const extra = getExtraChecks(item).map((check, index) => `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleExtraCheck(this.dataset.paymentId, ${index})" aria-pressed="${check.done}" class="card-payment-status ${check.done ? 'is-paid' : ''}">${check.done ? '✓' : '□'} ${paymentAttribute(check.label)}</button>`).join('');
             if (!payment) return extra;
             const done = isCardPaymentDone(item);
-            return `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleCardPayment(this.dataset.paymentId)" aria-pressed="${done}" class="card-payment-status ${done ? 'is-paid' : ''}">${done ? '✓' : '□'} ${paymentAttribute(payment.label)} · ${done ? '완료' : '미완료'}</button>` + extra;
+            return `<button type="button" data-payment-id="${paymentAttribute(item.id)}" onclick="event.stopPropagation(); window.toggleCardPayment(this.dataset.paymentId)" aria-pressed="${done}" class="card-payment-status ${done ? 'is-paid' : ''}">${done ? '✓' : '□'} ${paymentAttribute(payment.label)}</button>` + extra;
         }
 
         window.toggleCardPayment = (id) => {
@@ -789,7 +791,7 @@
             checkbox.dataset.amount = payment ? String(payment.amount) : '';
             panel.hidden = !payment;
             document.getElementById('f-payment-add').hidden = false;
-            if (payment) document.getElementById('f-card-payment-label').textContent = payment.label + ' · 완료';
+            if (payment) document.getElementById('f-card-payment-label').textContent = payment.label;
         };
 
         window.editPaymentCheck = () => {
