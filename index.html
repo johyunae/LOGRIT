@@ -197,6 +197,7 @@
         .record-editor-shell #form-actions:not(:empty) { margin-top:24px; }
         .record-editor-shell > #record-form { padding-bottom:max(24px, env(safe-area-inset-bottom)); }
     </style>
+    <script src="/LOGRIT/booking-image.js?v=20261103-1"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="pb-40 no-scrollbar">
@@ -1618,6 +1619,32 @@
             showToast('자동 입력했습니다. 내용을 확인한 뒤 저장해 주세요.');
         };
 
+        window.saveImageBookings = (rows) => {
+            LogritBookingImage.validate(rows);
+            const fresh = LogritBookingImage.freshRows(rows, db);
+            const now = Date.now();
+            const records = fresh.map(row => ({
+                id:newPhotoRecordId(), date:row.date, time:row.time, people:Number(row.people),
+                departure:row.departure, arrival:row.arrival, note:row.note || '내용없음',
+                amount:0, supplier:'미지정', color:'', extraChecks:[],
+                cardPaymentDone:false, cardPaymentAmount:0, updatedAt:now
+            }));
+            const next = [...db, ...records];
+            // Persist before closing review; a storage failure must leave the entries available.
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+            db = next;
+            document.getElementById('auto-input-modal')?.remove();
+            const emptyNewEditor = !currentEditId && !['f-departure','f-arrival','f-time','f-people','f-note','f-supplier','f-amount-display'].some(id => document.getElementById(id)?.value) && !calendarPhotoIndex.some(photo => photo.recordId === currentPhotoRecordId) && !extraEditorChecks().length;
+            if (emptyNewEditor) {
+                document.getElementById('modal-container')?.remove();
+                localStorage.removeItem('logrit_draft_data');
+            }
+            render();
+            if (window.syncPickupAlerts) window.syncPickupAlerts();
+            if (window.lucide) lucide.createIcons();
+            showToast(`${records.length}건 등록했습니다.${rows.length > fresh.length ? ' 중복 '+(rows.length-fresh.length)+'건 제외' : ''}`);
+        };
+
         window.openAutoInputModal = () => {
             document.getElementById('auto-input-modal')?.remove();
             const html = `<div id="auto-input-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[300] flex items-end"><div class="bg-modal w-full max-w-md mx-auto rounded-t-[2rem] p-6 pb-10 border-t border-custom shadow-2xl">
@@ -1639,6 +1666,17 @@
                 if(status) status.textContent='이미지 글자를 읽는 중...';
                 const img=await createImageBitmap(file);
                 ocrWorker=await Tesseract.createWorker('eng+kor',1,{logger:m=>{if(status&&m.status==='recognizing text') status.textContent='이미지 분석 '+Math.round((m.progress||0)*100)+'%';}});
+                if (window.LogritBookingImage) {
+                    const bookings = await LogritBookingImage.readRows({
+                        img, worker:ocrWorker, status,
+                        baseDate:document.getElementById('f-date')?.value || getLocalToday(),
+                        parseDate:readBookingDate, place:koreanBookingPlace, terminal:bookingAirportTerminal
+                    });
+                    if (bookings) {
+                        LogritBookingImage.review(bookings, window.saveImageBookings);
+                        return;
+                    }
+                }
                 await ocrWorker.setParameters({tessedit_pageseg_mode:'11'});
                 const result=await ocrWorker.recognize(file);
                 const text=result?.data?.text||'';
