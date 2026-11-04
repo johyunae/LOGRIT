@@ -1950,15 +1950,12 @@
                             <div class="route-simple-row"><span class="route-simple-label">도착</span><div class="route-simple-place"><input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" placeholder="도착지" class="input-field"><details data-pickup-features hidden><summary id="arrival-navigation-preview">주소 연결 필요</summary></details></div><button data-pickup-features hidden id="destination-navigate-button" type="button" onclick="window.navigateDestinationLocation()" class="route-simple-nav">티맵 ↗</button></div>
                             <button type="button" onclick="window.swapRoute()" class="route-simple-swap">출발·도착 바꾸기 ⇅</button>
                         </div>
-                        <details data-pickup-features hidden class="bg-sub rounded-xl p-3 border border-custom"><summary class="cursor-pointer text-sm font-bold">자동 알림 설정</summary><div class="space-y-2 mt-3">
+                        <div data-pickup-features hidden class="bg-sub rounded-xl px-3 py-2 border border-custom">
                             <input type="hidden" id="f-pickup-location"><input type="hidden" id="f-destination-location">
                             <p id="pickup-location-label" hidden class="font-bold text-sm">픽업 위치를 지정해 주세요</p>
-                            
                             <p id="destination-location-label" hidden class="font-bold text-sm">도착지 위치를 지정해 주세요</p>
-                            
-                            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="f-pickup-auto" onchange="window.enablePickupAuto(this)">10분·5분 전 자동 위치 확인</label>
-                            <p class="text-xs text-dim">정확한 호텔·승차장 주소를 지정해 주세요. 자동 확인은 절전 설정에 따라 늦어질 수 있습니다.</p>
-                        </div></details>
+                            <label class="flex items-center gap-2 text-sm whitespace-nowrap cursor-pointer" style="min-height:32px"><input type="checkbox" id="f-pickup-auto" class="shrink-0" onchange="window.enablePickupAuto(this)"><span>10분·5분 전 자동 위치 확인</span></label>
+                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <input type="text" id="f-time" placeholder="시간 Time (예: 710)" inputmode="text" oninput="window.autoFormatTime(this); window.saveDraft();" onblur="window.formatTimeOnBlur(this); window.saveDraft();" class="input-field font-mono"> 
                             <input type="number" id="f-people" placeholder="인원 People" class="input-field">
