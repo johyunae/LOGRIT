@@ -360,6 +360,7 @@
             }
             if (logritFilePickerActive) { logritFilePickerActive = false; return; }
             if (document.querySelector('#modal-container, #auto-input-modal, #import-modal, #calendar-photo-viewer')) return;
+            if (['list', 's_cal', 'sales_calendar'].includes(currentNav)) return;
             document.getElementById('daily-modal-container')?.remove();
             window.goToToday();
         });
