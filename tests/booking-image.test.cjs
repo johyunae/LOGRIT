@@ -135,3 +135,13 @@ test('known English route names and block numbers become Korean while flight cod
     assert.equal(c.koreanBookingPlace('EURO SKY,Block 202-1704'),'유로스카이 202동 1704호');
     assert.equal(booking.freshRows([imported],[{...imported,arrival:'Eurosky, Block 202-1704'}],c.koreanBookingPlace).length,0);
 });
+
+test('booking rows localize known buildings with a leading unit number',()=>{
+    for (const name of ['Mijin Tower Palace', 'Myin Tower Palace']) {
+        const imported = row({0:'12-Dec',2:'04:00',5:`#102-1202, ${name}`,6:'Busan International Airport',7:'OZ9782'});
+        assert.equal(imported.departure, '미진타워팰리스 102동 1202호');
+        assert.equal(imported.arrival, '국제 OZ9782');
+        assert.equal(row({6:`#102-1202, ${name}`}).arrival, '미진타워팰리스 102동 1202호');
+    }
+    assert.equal(parser().koreanBookingPlace('#102-1202, Unlisted Hotel'), '#102-1202, Unlisted Hotel');
+});
