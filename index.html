@@ -320,7 +320,28 @@
         window.addEventListener('hashchange', () => { if (logritImportLinksReady) window.consumeLogritImportLink(); });
 
         let logritScreenReady = false, logritFilePickerActive = false;
+        const retainedLogritScreens = ['list', 's_cal', 'sales_calendar'];
+        const logritReturnScreenKey = 'logrit_return_screen';
+        function saveLogritReturnScreen() {
+            if (!logritScreenReady) return;
+            try {
+                if (!retainedLogritScreens.includes(currentNav)) {
+                    sessionStorage.removeItem(logritReturnScreenKey);
+                    return;
+                }
+                sessionStorage.setItem(logritReturnScreenKey, JSON.stringify({
+                    nav: currentNav, year: calContext.getFullYear(), month: calContext.getMonth(),
+                    searchTerm, filterMonth, colors: [...selectedSearchColors], scrollTop: window.scrollY
+                }));
+            } catch (error) { console.error('Screen state saving failed:', error); }
+        }
         function openLogritStartScreen() {
+            let screen;
+            try {
+                const savedScreen = sessionStorage.getItem(logritReturnScreenKey);
+                sessionStorage.removeItem(logritReturnScreenKey);
+                screen = JSON.parse(savedScreen);
+            } catch (error) { console.error('Screen state recovery failed:', error); }
             if (window.consumeLogritImportLink()) return;
             try {
                 const draft = JSON.parse(localStorage.getItem('logrit_draft_data') || 'null');
@@ -330,6 +351,16 @@
                     return;
                 }
             } catch(error) { console.error('Draft recovery failed:', error); }
+            if (screen && retainedLogritScreens.includes(screen.nav)) {
+                currentNav = screen.nav;
+                calContext = new Date(screen.year, screen.month, 1);
+                searchTerm = screen.searchTerm;
+                filterMonth = screen.filterMonth;
+                selectedSearchColors = new Set(screen.colors);
+                render();
+                requestAnimationFrame(() => window.scrollTo(0, screen.scrollTop));
+                return;
+            }
             window.goToToday();
         }
         window.onload = async () => {
@@ -350,9 +381,11 @@
         for (const eventName of ['change', 'cancel']) document.addEventListener(eventName, event => {
             if (event.target?.matches?.('input[type="file"]')) setTimeout(() => { logritFilePickerActive = false; }, 0);
         }, true);
+        window.addEventListener('pagehide', saveLogritReturnScreen);
         document.addEventListener('visibilitychange', () => {
             if (!logritScreenReady) return;
             if (document.hidden) {
+                saveLogritReturnScreen();
                 if (document.getElementById('modal-container')) {
                     try { window.saveDraft(); } catch(error) { console.error('Draft saving failed:', error); }
                 }
@@ -360,7 +393,7 @@
             }
             if (logritFilePickerActive) { logritFilePickerActive = false; return; }
             if (document.querySelector('#modal-container, #auto-input-modal, #import-modal, #calendar-photo-viewer')) return;
-            if (['list', 's_cal', 'sales_calendar'].includes(currentNav)) return;
+            if (retainedLogritScreens.includes(currentNav)) return;
             document.getElementById('daily-modal-container')?.remove();
             window.goToToday();
         });
