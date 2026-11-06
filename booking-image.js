@@ -110,13 +110,13 @@
         });
         return bookings;
     }
-    function key(row) {
-        return JSON.stringify([row.date,row.time,row.departure,row.arrival,String(Number(row.people)),/^(?:내용없음|내용 없음)$/.test(row.note)?'':row.note]
+    function key(row, place = value => value) {
+        return JSON.stringify([row.date,row.time,place(row.departure),place(row.arrival),String(Number(row.people)),/^(?:내용없음|내용 없음)$/.test(row.note)?'':row.note]
             .map(value=>String(value||'').trim().replace(/\s+/g,' ')));
     }
-    function freshRows(rows, existing) {
-        const seen=new Set(existing.map(key));
-        return rows.filter(row=>{const k=key(row);if(seen.has(k))return false;seen.add(k);return true;});
+    function freshRows(rows, existing, place = value => value) {
+        const seen=new Set(existing.map(row=>key(row,place)));
+        return rows.filter(row=>{const k=key(row,place);if(seen.has(k))return false;seen.add(k);return true;});
     }
     function review(bookings, save) {
         document.getElementById('booking-image-review')?.remove();
@@ -150,7 +150,17 @@
                 if(type==='number'){input.min='1';input.max='999';}
                 input.className='input-field';input.value=booking[name]||'';input.setAttribute('aria-label',`${index+1}번째 ${text}`);
                 if(type==='textarea')input.rows=3;
-                wrap.appendChild(input);card.appendChild(wrap);inputs[name]=input;
+                wrap.appendChild(input);
+                if (name==='departure' || name==='arrival') {
+                    const hint=document.createElement('span');hint.className='block text-xs text-dim';
+                    const updateHint=()=>{
+                        const value=input.value.replace(/^(?:국제|국내)\s*/, '').trim();
+                        hint.textContent=/[a-z]/i.test(value) && !/^(?:[A-Z][A-Z0-9]|[0-9][A-Z])\d{2,5}$/i.test(value)
+                            ? '영문 장소명 확인' : '';
+                    };
+                    updateHint();input.addEventListener('input',updateHint);wrap.appendChild(hint);
+                }
+                card.appendChild(wrap);inputs[name]=input;
             });
             list.appendChild(card);return {selected,inputs};
         });

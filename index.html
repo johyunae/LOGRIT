@@ -212,7 +212,7 @@
         .record-editor-shell h3 + span { display:none; }
 
     </style>
-    <script src="/LOGRIT/booking-image.js?v=20261106-1"></script>
+    <script src="/LOGRIT/booking-image.js?v=20261106-2"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="pb-40 no-scrollbar">
@@ -1559,8 +1559,17 @@
         }
         function koreanBookingPlace(raw) {
             const place = String(raw || '').trim();
-            const known = {'samsung hotel':'삼성호텔','busan station':'부산역','busan port':'부산항','gimhae airport':'김해공항','busan international airport':'김해국제공항'};
-            return known[place.toLowerCase().replace(/\s+/g,' ')] || place;
+            const address = place.match(/^(.+?)(?:\s*,\s*|\s+)Block\s+(\d+)\s*[-–]\s*(\d+)$/i);
+            const name = address ? address[1] : place;
+            const known = new Map([
+                ['samsung hotel', '삼성호텔'], ['busan station', '부산역'],
+                ['busan port', '부산항'], ['gimhae airport', '김해공항'],
+                ['busan international airport', '김해국제공항'], ['gimhae international airport', '김해국제공항'],
+                ['eurosky', '유로스카이'], ['euro sky', '유로스카이'],
+                ['mijin tower palace', '미진타워팰리스']
+            ]);
+            const koreanName = known.get(name.toLowerCase().replace(/\s+/g, ' ')) || name;
+            return address ? `${koreanName} ${address[2]}동 ${address[3]}호` : koreanName;
         }
         function bookingAirportTerminal(raw) {
             return /domestic|국내/i.test(raw || '') ? '국내' : /international|국제/i.test(raw || '') ? '국제' : '';
@@ -1670,7 +1679,7 @@
 
         window.saveImageBookings = (rows) => {
             LogritBookingImage.validate(rows);
-            const fresh = LogritBookingImage.freshRows(rows, db);
+            const fresh = LogritBookingImage.freshRows(rows, db, koreanBookingPlace);
             const now = Date.now();
             const records = fresh.map(row => ({
                 id:newPhotoRecordId(), date:row.date, time:row.time, people:Number(row.people),

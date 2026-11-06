@@ -44,7 +44,7 @@ test('different row dates, routes, people and remarks stay separate across a yea
     const c=parser(),first=row();
     const second=booking.rowBooking(cells({0:'1-Jan',2:'19:35',3:'5',5:'Busan International Airport',6:'Mijin Tower Palace',7:'KE1407',10:'SECOND ONLY'}),'2026-11-03',first.date,c.readBookingDate,c.koreanBookingPlace,c.bookingAirportTerminal);
     assert.equal(first.date,'2026-12-12');assert.equal(first.time,'07:00');assert.equal(first.people,'4');assert.equal(first.arrival,'국제 KE1406');
-    assert.equal(second.date,'2027-01-01');assert.equal(second.time,'19:35');assert.equal(second.people,'5');assert.equal(second.departure,'KE1407');assert.equal(second.arrival,'Mijin Tower Palace');
+    assert.equal(second.date,'2027-01-01');assert.equal(second.time,'19:35');assert.equal(second.people,'5');assert.equal(second.departure,'KE1407');assert.equal(second.arrival,'미진타워팰리스');
     assert.ok(first.note.endsWith('HL'));assert.ok(!first.note.includes('SECOND ONLY'));assert.ok(!second.note.includes('HL'));assert.ok(!second.note.includes('DRIVER'));
     assert.equal(booking.validate([first,second]).length,2);
 });
@@ -79,7 +79,7 @@ test('OCR uses a separate crop for each cell and each row, keeping even failed r
 function saveApp(fail=false) {
     const nodes={'f-date':{value:'2026-11-03'},'modal-container':{remove(){}},'auto-input-modal':{remove(){}}};
     let stored;
-    const c=vm.createContext({LogritBookingImage:booking,Date,db:[{id:'keep',date:'2026-01-01'}],currentEditId:null,currentPhotoRecordId:'draft',calendarPhotoIndex:[],STORAGE_KEY:'db',
+    const c=vm.createContext({LogritBookingImage:booking,Date,koreanBookingPlace:parser().koreanBookingPlace,db:[{id:'keep',date:'2026-01-01'}],currentEditId:null,currentPhotoRecordId:'draft',calendarPhotoIndex:[],STORAGE_KEY:'db',
         document:{getElementById:id=>nodes[id]},localStorage:{setItem(k,v){if(fail)throw Error('quota');stored=JSON.parse(v);},removeItem(){}},
         newPhotoRecordId:(()=>{let n=0;return ()=>`new-${++n}`;})(),extraEditorChecks:()=>[],render(){},showToast(){}});
     vm.runInContext('window=globalThis;'+html.slice(html.indexOf('        window.saveImageBookings ='),html.indexOf('        window.openAutoInputModal =')),c);
@@ -101,7 +101,7 @@ function fakeDOM() {
     function createElement(tag) {
         const node={tag,children:[],style:{},value:'',disabled:false,attributes:{},
             append(...children){this.children.push(...children);},appendChild(child){this.append(child);},
-            setAttribute(k,v){this.attributes[k]=v;},focus(){},remove(){this.removed=true;}};
+            setAttribute(k,v){this.attributes[k]=v;},addEventListener(){},focus(){},remove(){this.removed=true;}};
         nodes.push(node);return node;
     }
     return {nodes,document:{createElement,createTextNode:text=>({text}),getElementById:id=>nodes.find(n=>n.id===id && !n.removed),body:createElement('body')}};
@@ -124,4 +124,14 @@ test('review supports selection, corrections, cancellation and errors before sav
 });
 test('empty memo default and numeric people do not defeat retry deduplication',()=>{
     const r={...row(),note:''};assert.equal(booking.freshRows([r],[{...r,note:'내용없음',people:4}]).length,0);
+});
+
+test('known English route names and block numbers become Korean while flight codes stay intact',()=>{
+    const imported=row({0:'9-Nov',2:'07:10',5:'Busan International Airport',6:'Eurosky, Block 202-1704',7:'VN422'});
+    assert.equal(imported.departure,'VN422');
+    assert.equal(imported.arrival,'유로스카이 202동 1704호');
+    const c=parser();
+    assert.equal(c.koreanBookingPlace('Unlisted Hotel'),'Unlisted Hotel');
+    assert.equal(c.koreanBookingPlace('EURO SKY,Block 202-1704'),'유로스카이 202동 1704호');
+    assert.equal(booking.freshRows([imported],[{...imported,arrival:'Eurosky, Block 202-1704'}],c.koreanBookingPlace).length,0);
 });
