@@ -31,26 +31,11 @@
     };
     const labelFor = role => document.getElementById(role === 'arrival' ? 'f-arrival' : 'f-departure')?.value || '';
 
-    const refreshNavigationButton = (role, place) => {
+    const refreshTmapPlace = (role, place) => {
         const button = document.getElementById(role === 'arrival' ? 'destination-navigate-button' : 'pickup-navigate-button');
-        if (!button) return;
-        const title = role === 'arrival' ? '도착지' : '출발지';
-        button.textContent = place ? '티맵 ↗' : '연결';
-        button.title = place ? title + '로 길안내: ' + place.name : title + ' 주소 연결';
-        button.setAttribute('aria-label', button.title);
+        if (button) button.hidden = !place;
         const preview = document.getElementById(role + '-navigation-preview');
-        if (!preview) return;
-        preview.textContent = place ? '연결됨 · 주소 보기' : '주소 연결 필요';
-        const details = preview.parentElement;
-        let address = details.querySelector('[data-linked-address]');
-        if (!address) {
-            address = document.createElement('p');
-            address.dataset.linkedAddress = '';
-            address.style.cssText = 'margin:6px 0';
-            details.append(address);
-        }
-        address.textContent = place ? place.name : '티맵 옆 연결 버튼에서 주소를 선택해 주세요.';
-
+        if (preview) preview.textContent = place ? place.name : (labelFor(role).trim() || '장소 미입력') + ' · 연결된 주소 없음';
     };
 
     let choosing = null;
@@ -68,8 +53,7 @@
         const label = labelFor('departure');
         if (!valid(p) || p.departure !== label) p = remembered(label);
         input.value = JSON.stringify(p);
-        refreshNavigationButton('departure', p);
-        document.getElementById('pickup-location-label').textContent = p ? '타는 곳: ' + p.name : '픽업 위치를 지정해 주세요';
+        refreshTmapPlace('departure', p);
         document.getElementById('f-pickup-auto').checked = !!p?.auto;
     };
     window.destinationEditorValue = () => {
@@ -84,8 +68,7 @@
         const label = labelFor('arrival');
         if (!valid(p) || p.departure !== label) p = remembered(label);
         input.value = JSON.stringify(p);
-        refreshNavigationButton('arrival', p);
-        document.getElementById('destination-location-label').textContent = p ? '내리는 곳: ' + p.name : '도착지 위치를 지정해 주세요';
+        refreshTmapPlace('arrival', p);
     };
     window.refreshRouteLocations = () => {
         window.setPickupLocation(window.pickupEditorValue());
