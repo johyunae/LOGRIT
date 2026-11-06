@@ -4,11 +4,11 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const booking=require('../booking-image.js');
 const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
-function gridImage(rowCount=2) {
-    const width=1361,height=49+98*rowCount;
+function gridImage(rowCount=2, header=true) {
+    const width=1361,height=(header ? 49 : 1)+98*rowCount;
     const pixels=new Uint8ClampedArray(width*height*4).fill(255);
     const xs=[0,77,149,237,309,508,696,897,969,1066,1227,1360];
-    const ys=[0,48,...Array.from({length:rowCount},(_,i)=>Math.min(height-1,146+98*i))];
+    const ys=header ? [0,48,...Array.from({length:rowCount},(_,i)=>146+98*i)] : [0,height-1];
     const dark=(x,y)=>{const p=(y*width+x)*4;pixels[p]=pixels[p+1]=pixels[p+2]=0;};
     xs.forEach(x=>{for(let y=0;y<height;y++)dark(x,y);});
     ys.forEach(y=>{for(let x=0;x<width;x++)dark(x,y);});
@@ -26,9 +26,19 @@ test('the 11-column screenshot splits into two isolated data rows, excluding the
     const grid=geometry(2);assert.equal(grid.rows.length,2);assert.equal(grid.xs.length,12);
     assert.ok(grid.rows[0].top>grid.headerBottom);assert.ok(grid.rows[0].bottom<grid.rows[1].top);
 });
-test('many rows have no two-row limit; single-row and non-table images keep the existing import',()=>{
+test('many rows have no two-row limit; a header with one row keeps the existing import',()=>{
     assert.equal(geometry(9).rows.length,9);assert.equal(geometry(1),null);
     assert.equal(booking.detectTable(new Uint8ClampedArray(300*100*4).fill(255),300,100),null);
+});
+test('a cropped single row keeps its date separate from pickup time',()=>{
+    const g=gridImage(1,false), grid=booking.detectTable(g.pixels,g.width,g.height);
+    assert.equal(grid.headerBottom,null);
+    assert.deepEqual(grid.rows,[{top:2,bottom:96}]);
+    const recognized=row({0:'9-Nov',1:'MON',2:'07:10'});
+    assert.equal(recognized.date,'2026-11-09');
+    assert.equal(recognized.time,'07:10');
+    assert.equal(row({0:'',2:'07:10'}).date,'');
+    assert.throws(()=>booking.validate([row({0:'',2:'07:10'})]),/날짜/);
 });
 test('different row dates, routes, people and remarks stay separate across a year boundary',()=>{
     const c=parser(),first=row();

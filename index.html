@@ -212,7 +212,7 @@
         .record-editor-shell h3 + span { display:none; }
 
     </style>
-    <script src="/LOGRIT/booking-image.js?v=20261103-1"></script>
+    <script src="/LOGRIT/booking-image.js?v=20261106-1"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="pb-40 no-scrollbar">
@@ -1836,7 +1836,7 @@
                     }
                     imageRemark=(row[10]||'').trim();
                     if(row.filter(Boolean).length>=6){
-                        let date=readBookingDate(row[0], document.getElementById('f-date')?.value || getLocalToday()) || readBookingDate(text, document.getElementById('f-date')?.value || getLocalToday());
+                        let date=readBookingDate(row[0], document.getElementById('f-date')?.value || getLocalToday());
                         const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
                         if(date){
                             const [year,month,day]=date.split('-').map(Number);

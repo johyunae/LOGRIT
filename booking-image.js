@@ -29,10 +29,12 @@
         if (xs.length && width - xs[xs.length-1] > 3) xs.push(width-1);
         if (ys.length && ys[0] > 3) ys.unshift(0);
         if (ys.length && height - ys[ys.length-1] > 3) ys.push(height-1);
-        if (![11,12].includes(xs.length-1) || ys.length < 4) return null;
-        const rows = ys.slice(1,-1).map((top, i) => ({top:top+2, bottom:ys[i+2]-2}));
+        if (![11,12].includes(xs.length-1) || ys.length < 2 || ys.length === 3) return null;
+        // A cropped single booking has outer borders but no header row.
+        const firstRow = ys.length === 2 ? 0 : 1;
+        const rows = ys.slice(firstRow,-1).map((top, i) => ({top:top+2, bottom:ys[firstRow+i+1]-2}));
         if (rows.some(row => row.bottom - row.top < 12)) return null;
-        return {xs, rows, headerBottom:ys[1]};
+        return {xs, rows, headerBottom:firstRow ? ys[1] : null};
     }
     function rowBooking(cells, baseDate, previousDate, parseDate, place, terminal) {
         let date = parseDate(cells[0], baseDate);
