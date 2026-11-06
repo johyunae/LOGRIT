@@ -200,6 +200,10 @@
         .record-route { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:8px; align-items:center; }
         .tmap-button { min-height:44px; padding:8px 16px; border:1px solid var(--border-color); border-radius:12px; background:var(--sub-bg); font-weight:800; }
         .tmap-button[hidden] { display:none; }
+        .tmap-controls { display:flex; align-items:stretch; gap:8px; }
+        .tmap-controls[hidden] { display:none; }
+        .tmap-controls > button { flex:0 0 auto; padding-inline:12px; }
+        .tmap-auto { display:flex; flex:1; align-items:center; justify-content:center; gap:6px; padding:4px 8px; border:1px solid var(--border-color); border-radius:12px; background:var(--sub-bg); font-size:13px; white-space:nowrap; cursor:pointer; }
         .tmap-dialog { width:calc(100% - 32px); max-width:400px; max-height:calc(100% - 32px); margin:auto; padding:20px; border:1px solid var(--border-color); border-radius:20px; color:var(--text-bold); background:var(--modal-bg); }
         .tmap-dialog::backdrop { background:#0009; }
         .tmap-place { padding:12px 0; border-top:1px solid var(--border-color); }
@@ -1993,7 +1997,10 @@
                             <input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" placeholder="도착지 Arrival" aria-label="도착지" class="input-field">
                         </div>
                         <input type="hidden" id="f-pickup-location"><input type="hidden" id="f-destination-location">
-                        <button type="button" data-pickup-features hidden class="tmap-button w-full" aria-haspopup="dialog" onclick="document.getElementById('tmap-dialog').showModal()">티맵</button>
+                        <div data-pickup-features hidden class="tmap-controls">
+                            <button type="button" class="tmap-button" aria-haspopup="dialog" onclick="document.getElementById('tmap-dialog').showModal()">티맵</button>
+                            <label class="tmap-auto"><input type="checkbox" id="f-pickup-auto" class="shrink-0" onchange="window.enablePickupAuto(this)"><span>10분·5분 전 자동 위치 확인</span></label>
+                        </div>
                         <dialog id="tmap-dialog" class="tmap-dialog" aria-labelledby="tmap-dialog-title">
                             <div class="flex items-center justify-between mb-3">
                                 <h4 id="tmap-dialog-title" class="text-xl font-black">티맵</h4>
@@ -2017,9 +2024,6 @@
                             </div>
                             <button type="button" class="btn-primary" onclick="window.navigateScheduleRoute()">출발지 → 도착지 경로</button>
                         </dialog>
-                        <div data-pickup-features hidden class="bg-sub rounded-xl px-3 py-2 border border-custom">
-                            <label class="flex items-center gap-2 text-sm whitespace-nowrap cursor-pointer" style="min-height:32px"><input type="checkbox" id="f-pickup-auto" class="shrink-0" onchange="window.enablePickupAuto(this)"><span>10분·5분 전 자동 위치 확인</span></label>
-                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <input type="text" id="f-time" placeholder="시간 Time (예: 710)" inputmode="text" oninput="window.autoFormatTime(this); window.saveDraft();" onblur="window.formatTimeOnBlur(this); window.saveDraft();" class="input-field font-mono"> 
                             <input type="number" id="f-people" placeholder="인원 People" class="input-field">
