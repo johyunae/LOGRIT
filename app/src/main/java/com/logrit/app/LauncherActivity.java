@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Message;
+import android.provider.ContactsContract.Contacts;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -30,6 +31,9 @@ import android.widget.EditText;
 
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
+import org.json.JSONObject;
 
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
@@ -52,6 +56,7 @@ public class LauncherActivity extends Activity {
     private byte[] pendingBackup;
     private static final int OPEN_FILE = 1001;
     private static final int SAVE_BACKUP = 1002;
+    private static final int PICK_CONTACT = 1003;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,7 +103,7 @@ public class LauncherActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setSupportMultipleWindows(true);
-        settings.setUserAgentString(settings.getUserAgentString() + " LOGRIT-Android/" + BuildConfig.VERSION_CODE + (BuildConfig.DEBUG ? " LOGRIT-Test" : ""));
+        settings.setUserAgentString(settings.getUserAgentString() + " LOGRIT-Android/" + BuildConfig.VERSION_CODE + " LOGRIT-Contacts" + (BuildConfig.DEBUG ? " LOGRIT-Test" : ""));
         settings.setMediaPlaybackRequiresUserGesture(false);
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -206,6 +211,7 @@ public class LauncherActivity extends Activity {
             @Override
             public boolean onJsPrompt(WebView view, String url, String message,
                     String defaultValue, JsPromptResult result) {
+                if (handleContactPrompt(url, message, defaultValue, result)) return true;
                 if (pickupLocation.handlePrompt(url, message, result)) return true;
                 EditText input = new EditText(LauncherActivity.this);
                 input.setText(defaultValue);
@@ -305,10 +311,62 @@ public class LauncherActivity extends Activity {
         }
     }
 
+    private static boolean isLogritPage(String url) {
+        Uri uri = Uri.parse(url == null ? "" : url);
+        String path = uri.getPath();
+        return "https".equals(uri.getScheme()) && "johyunae.github.io".equals(uri.getHost())
+                && (uri.getPort() == -1 || uri.getPort() == 443)
+                && path != null && path.startsWith("/LOGRIT/");
+    }
+
+    private boolean handleContactPrompt(String url, String message, String key, JsPromptResult result) {
+        boolean picking = "LOGRIT_CONTACT_PICK".equals(message);
+        if (!picking && !"LOGRIT_CONTACT_OPEN".equals(message)) return false;
+        if (!isLogritPage(url) || !isLogritPage(webView.getUrl())) {
+            result.cancel();
+            return true;
+        }
+        try {
+            if (picking) {
+                startActivityForResult(new Intent(Intent.ACTION_PICK, Contacts.CONTENT_URI), PICK_CONTACT);
+            } else {
+                String linkedUri = getPreferences(MODE_PRIVATE).getString("contact:" + key, null);
+                if (linkedUri == null) {
+                    result.confirm("missing");
+                    return true;
+                }
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(linkedUri)));
+            }
+            result.confirm("ok");
+        } catch (ActivityNotFoundException | SecurityException e) {
+            result.confirm("missing");
+        }
+        return true;
+    }
+
+    private void returnPickedContact(Intent data) {
+        if (data == null || data.getData() == null || !isLogritPage(webView.getUrl())) return;
+        Uri pickedUri = data.getData();
+        if (!"content".equals(pickedUri.getScheme())
+                || !Contacts.CONTENT_URI.getAuthority().equals(pickedUri.getAuthority())) return;
+        Uri lookupUri;
+        try {
+            lookupUri = Contacts.getLookupUri(getContentResolver(), pickedUri);
+        } catch (SecurityException | IllegalArgumentException e) {
+            lookupUri = null;
+        }
+        String key = UUID.randomUUID().toString();
+        getPreferences(MODE_PRIVATE).edit()
+                .putString("contact:" + key, (lookupUri != null ? lookupUri : pickedUri).toString()).apply();
+        webView.evaluateJavascript("window.receivePickupContact?.(" + JSONObject.quote(key) + ")", null);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == OPEN_FILE && fileChooserCallback != null) {
+        if (requestCode == PICK_CONTACT && resultCode == RESULT_OK) {
+            returnPickedContact(data);
+        } else if (requestCode == OPEN_FILE && fileChooserCallback != null) {
             fileChooserCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data));
             fileChooserCallback = null;
         } else if (requestCode == SAVE_BACKUP) {

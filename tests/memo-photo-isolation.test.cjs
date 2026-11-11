@@ -42,7 +42,12 @@ test('draft and save share the reserved schedule id so photos survive recovery',
     a.c.refreshCardPaymentEditor=()=>{};a.c.extraEditorChecks=()=>[];
     a.run(`currentEditId=null; currentPhotoRecordId='record-draft';`);
     vm.runInContext(html.slice(html.indexOf('        window.saveDraft ='),html.indexOf('        window.swapRoute')),a.c);
+    vm.runInContext(html.slice(html.indexOf('        function pickupContactEditorValues'),html.indexOf('        function refreshPickupContact')),a.c);
+    a.nodes['f-passenger-name']={value:'Passenger'};
+    a.nodes['f-pickup-company']={value:'Company'};
+    a.nodes['f-pickup-contact']={value:'local-contact-key'};
     a.c.saveDraft();assert.equal(draft.photoRecordId,'record-draft');
+    assert.equal(draft.pickupContactKey,'local-contact-key');
     for (const id of ['f-amount-display','f-supplier','f-note','f-time','f-departure','f-arrival','f-people','f-color','f-import-link-id']) a.nodes[id]={value:''};
     a.nodes['f-card-payment-done']={checked:false};a.nodes['modal-container']={remove(){}};
     a.c.localStorage.removeItem=()=>{};a.c.sync=()=>{};
@@ -50,6 +55,9 @@ test('draft and save share the reserved schedule id so photos survive recovery',
     vm.runInContext(html.slice(html.indexOf('        window.saveRecord ='),html.indexOf('        window.deleteItemDirect')),a.c);
     a.c.saveRecord({preventDefault(){}});
     assert.equal(a.run('db[0].id'),draft.photoRecordId);
+    for (const field of ['passengerName','pickupCompany','pickupContactKey']) {
+        assert.equal(a.c.db[0][field],draft[field]);
+    }
 });
 test('schedule thumbnails show only that schedule and legacy photos stay available for assignment',()=>{
     const a=app();a.run(`calendarPhotoIndex=[{id:'legacy',date:'2026-10-23',thumbnail:'old'},{id:'a',date:'2026-10-23',recordId:'first',thumbnail:'a'},{id:'b',date:'2026-10-23',recordId:'second',thumbnail:'b'}]; db=[{id:'first',date:'2026-10-23'},{id:'second',date:'2026-10-23'}];`);

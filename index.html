@@ -1116,7 +1116,7 @@
             if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('Invalid schedule');
             const record = {};
             const strings = { id: 100, date: 10, time: 5, supplier: 10000, note: 100000, departure: 10000,
-                arrival: 10000, color: 30, importLinkId: 100, paymentCheckKey: 10000, paymentCheckLabel: 10000 };
+                arrival: 10000, color: 30, importLinkId: 100, paymentCheckKey: 10000, paymentCheckLabel: 10000, passengerName: 10000, pickupCompany: 10000, pickupContactKey: 36 };
             for (const [key, max] of Object.entries(strings)) {
                 if (source[key] === undefined) continue;
                 if (typeof source[key] !== 'string' || source[key].length > max) throw new Error('Invalid schedule field');
@@ -1448,6 +1448,7 @@
                 paymentCheckKey: document.getElementById('f-card-payment-done')?.dataset.paymentKey || '',
                 paymentCheckLabel: document.getElementById('f-payment-custom-label')?.value || '',
                 paymentCheckHidden: document.getElementById('f-payment-check-hidden')?.value === 'true',
+                ...pickupContactEditorValues(),
                 extraChecks: extraEditorChecks()
             };
             localStorage.setItem('logrit_draft_data', JSON.stringify(draft));
@@ -1699,7 +1700,7 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
             db = next;
             document.getElementById('auto-input-modal')?.remove();
-            const emptyNewEditor = !currentEditId && !['f-departure','f-arrival','f-time','f-people','f-note','f-supplier','f-amount-display'].some(id => document.getElementById(id)?.value) && !calendarPhotoIndex.some(photo => photo.recordId === currentPhotoRecordId) && !extraEditorChecks().length;
+            const emptyNewEditor = !currentEditId && !['f-departure','f-arrival','f-time','f-people','f-note','f-passenger-name','f-pickup-company','f-pickup-contact','f-supplier','f-amount-display'].some(id => document.getElementById(id)?.value) && !calendarPhotoIndex.some(photo => photo.recordId === currentPhotoRecordId) && !extraEditorChecks().length;
             if (emptyNewEditor) {
                 document.getElementById('modal-container')?.remove();
                 localStorage.removeItem('logrit_draft_data');
@@ -2057,6 +2058,16 @@
                         <input type="hidden" id="f-extra-checks" value="[]">
                         <div id="f-extra-check-list"></div>
                         <button type="button" id="f-payment-add" onclick="window.addPaymentCheck()" class="card-payment-status">＋ 확인 항목 추가</button>
+                        <div class="flex items-center gap-2">
+                            <input id="f-passenger-name" type="text" placeholder="이름" aria-label="이름" class="input-field min-w-0 flex-1">
+                            <button type="button" onclick="window.usePickupContact()" aria-label="휴대폰 연락처 열기" class="shrink-0 p-3 rounded-xl border border-custom"><i data-lucide="phone" aria-hidden="true"></i></button>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm" aria-live="polite">
+                            <span id="pickup-contact-status"></span>
+                            <button id="pickup-contact-change" type="button" onclick="window.usePickupContact(true)" class="underline" hidden>연락처 변경</button>
+                        </div>
+                        <input id="f-pickup-contact" type="hidden">
+                        <input id="f-pickup-company" type="text" placeholder="픽업 회사명" aria-label="픽업 회사명" class="input-field">
                         <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
                         <section id="memo-photo-section" class="px-1 pt-2" aria-label="메모 아래 첨부 사진">
                             <div class="flex items-center justify-between gap-2">
@@ -2105,6 +2116,10 @@
 
             document.getElementById('f-import-link-id').value = (draftData || it || {}).importLinkId || '';
             const paymentSeed = draftData || it || {};
+            document.getElementById('f-passenger-name').value = paymentSeed.passengerName || '';
+            document.getElementById('f-pickup-company').value = paymentSeed.pickupCompany || '';
+            document.getElementById('f-pickup-contact').value = paymentSeed.pickupContactKey || '';
+            refreshPickupContact();
             window.setPickupLocation?.(paymentSeed.pickupLocation || null);
             window.setDestinationLocation?.(paymentSeed.destinationLocation || null);
             document.getElementById('f-extra-checks').value = JSON.stringify(getExtraChecks(paymentSeed));
@@ -2117,6 +2132,41 @@
             paymentCheckbox.checked = paymentSeed.cardPaymentDone === true;
             window.refreshCardPaymentEditor();
             if (window.lucide) lucide.createIcons();
+        };
+
+        function pickupContactEditorValues() {
+            return {
+                passengerName: document.getElementById('f-passenger-name')?.value.trim() || '',
+                pickupCompany: document.getElementById('f-pickup-company')?.value.trim() || '',
+                pickupContactKey: document.getElementById('f-pickup-contact')?.value || ''
+            };
+        }
+
+        function refreshPickupContact() {
+            const linked = !!document.getElementById('f-pickup-contact').value;
+            document.getElementById('pickup-contact-status').textContent = linked ? '연락처 연결됨' : '';
+            document.getElementById('pickup-contact-change').hidden = !linked;
+        }
+
+        window.usePickupContact = (choose = false) => {
+            if (!navigator.userAgent.includes('LOGRIT-Contacts')) {
+                showToast('연락처 연결은 업데이트된 로그릿 앱에서 사용할 수 있습니다.');
+                return;
+            }
+            const field = document.getElementById('f-pickup-contact');
+            if (field.value && !choose) {
+                if (prompt('LOGRIT_CONTACT_OPEN', field.value) === 'missing') {
+                    showToast('연락처를 다시 선택해 주세요.');
+                }
+                return;
+            }
+            window.receivePickupContact = key => {
+                if (!field.isConnected || !key) return;
+                field.value = key;
+                refreshPickupContact();
+                window.saveDraft();
+            };
+            if (prompt('LOGRIT_CONTACT_PICK') !== 'ok') showToast('연락처를 열 수 없습니다.');
         };
 
         window.startCopy = () => { currentEditId = null; currentPhotoRecordId = newPhotoRecordId(); window.refreshMemoPhotos(); document.getElementById('f-import-link-id').value = ''; document.getElementById('f-card-payment-done').checked = false; document.getElementById('f-extra-checks').value = JSON.stringify(extraEditorChecks().map(check => ({...check, done: false}))); window.renderExtraCheckEditor(); document.getElementById('delete-btn')?.remove(); document.getElementById('single-schedule-backup')?.remove(); event.currentTarget.remove(); localStorage.removeItem('logrit_draft_data'); window.saveDraft(); showToast("복사 완료! 다른 날짜에 저장하세요."); };
@@ -2151,6 +2201,7 @@
                 paymentCheckKey: payment ? payment.key : '',
                 paymentCheckLabel: paymentFields.paymentCheckLabel,
                 paymentCheckHidden: paymentFields.paymentCheckHidden,
+                ...pickupContactEditorValues(),
                 extraChecks: extraEditorChecks(),
                 updatedAt: Date.now() 
             }; 
