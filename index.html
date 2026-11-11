@@ -2002,7 +2002,8 @@
                         </div>
                         <input type="hidden" id="f-pickup-location"><input type="hidden" id="f-destination-location">
                         <div data-pickup-features hidden class="tmap-controls">
-                            <button type="button" class="tmap-button" aria-haspopup="dialog" onclick="document.getElementById('tmap-dialog').showModal()">티맵</button>
+                            <button type="button" class="tmap-button" onclick="window.navigateDestinationLocation()">도착지 티맵</button>
+                            <button type="button" class="tmap-button" aria-haspopup="dialog" onclick="document.getElementById('tmap-dialog').showModal()">주소 설정</button>
                             <label class="tmap-auto"><input type="checkbox" id="f-pickup-auto" class="shrink-0" onchange="window.enablePickupAuto(this)"><span>10분·5분 전 자동 위치 확인</span></label>
                         </div>
                         <dialog id="tmap-dialog" class="tmap-dialog" aria-labelledby="tmap-dialog-title">
