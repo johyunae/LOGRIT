@@ -83,11 +83,11 @@
         document.getElementById('f-pickup-location').value = 'null';
         window.setPickupLocation(null); window.saveDraft();
     };
-    const choose = role => {
+    const choose = (role, navigate = false) => {
         const departure = labelFor(role);
         if (!departure.trim()) return alert((role === 'arrival' ? '도착지' : '출발지') + '를 먼저 입력해 주세요.');
         choosing = {role, departure};
-        native('choose', {departure,role});
+        native('choose', {departure,role,navigate});
     };
     window.choosePickupLocation = () => choose('departure');
     window.chooseDestinationLocation = () => choose('arrival');
@@ -113,7 +113,7 @@
     };
     window.navigateDestinationLocation = () => {
         const destination = window.destinationEditorValue();
-        if (!destination) return choose('arrival');
+        if (!destination) return choose('arrival', true);
         window.saveDraft();
         native('navigate', {pickup: destination});
     };
