@@ -1573,7 +1573,7 @@
             ]);
             const normalizedName = name.toLowerCase().replace(/\s+/g, ' ');
             const village = /^(?:s|에스)\s*(?:village|빌리지)$/.test(normalizedName)
-                || (fromImage && /^(?:o|0|오)\s*(?:village|빌리지)$/.test(normalizedName));
+                || (fromImage && /^(?:o|0|5|오)\s*(?:village|빌리지)$/.test(normalizedName));
             const koreanName = village ? 'S빌리지' : known.get(normalizedName);
             if (prefixedAddress && koreanName) return `${koreanName} ${prefixedAddress[1]}동 ${prefixedAddress[2]}호`;
             return address ? `${koreanName || name} ${address[2]}동 ${address[3]}호` : koreanName || place;
