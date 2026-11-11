@@ -619,8 +619,8 @@
         window.showToast = (msg) => { const t = document.getElementById('toast'); t.innerText = msg; t.classList.add('visible'); setTimeout(() => t.classList.remove('visible'), 2500); };
         window.toggleTheme = () => { isLightMode = !isLightMode; applyTheme(); render(); localStorage.setItem('theme_is_light', isLightMode); };
         
-        window.navTo = (nav) => { currentNav = nav; selectedDate = null; searchTerm = ""; selectedSearchColors.clear(); filterMonth = null; render(); window.scrollTo(0,0); };
-        window.moveMonth = (v) => { calContext = new Date(calContext.getFullYear(), calContext.getMonth() + v, 1); selectedDate = null; render(); };
+        window.navTo = (nav) => { currentNav = nav; selectedDate = null; searchTerm = ""; selectedSearchColors.clear(); filterMonth = null; render(); window.scrollTo(0,0); saveLogritReturnScreen(); };
+        window.moveMonth = (v) => { calContext = new Date(calContext.getFullYear(), calContext.getMonth() + v, 1); selectedDate = null; render(); saveLogritReturnScreen(); };
         window.searchCalendarMonth = (value) => {
             const raw = String(value || '').trim().replace(/년|월/g, '.').replace(/[-\/\s]+/g, '.');
             const parts = raw.split('.').filter(Boolean);
@@ -628,7 +628,7 @@
             if (parts.length >= 2) { year = parseInt(parts[0], 10); month = parseInt(parts[1], 10); }
             else if (/^\d{6}$/.test(raw)) { year = parseInt(raw.slice(0,4),10); month = parseInt(raw.slice(4),10); }
             if (!Number.isInteger(year) || year < 1900 || year > 2100 || !Number.isInteger(month) || month < 1 || month > 12) { showToast('연도와 달을 입력해 주세요. 예: 2026.9'); return; }
-            calContext = new Date(year, month - 1, 1); selectedDate = null; render();
+            calContext = new Date(year, month - 1, 1); selectedDate = null; render(); saveLogritReturnScreen();
         };
         window.handleMonthSearchKey = (e) => { if (e.key === 'Enter') window.searchCalendarMonth(e.target.value); };
 
@@ -639,7 +639,7 @@
             currentNav = 'e_cal';
             selectedDate = null;
             render();
-            requestAnimationFrame(() => window.handleDateTouch(today));
+            saveLogritReturnScreen(); requestAnimationFrame(() => window.handleDateTouch(today));
         };
         window.openSettings = () => { currentNav = 'settings'; render(); };
         window.handleDateTouch = (dateStr) => {
