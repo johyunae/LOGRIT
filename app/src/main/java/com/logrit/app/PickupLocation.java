@@ -52,6 +52,9 @@ final class PickupLocation {
             if ("permissions".equals(action)) {
                 boolean ready = automaticPermissions();
                 result.confirm(ready ? "ready" : "pending");
+            } else if ("searchDestination".equals(action)) {
+                result.confirm("handled");
+                searchTmap(request.optString("name"));
             } else {
                 result.confirm("ok");
                 if ("choose".equals(action)) choose(request.optString("departure"), request.optString("role", "departure"), request.optBoolean("navigate"));
@@ -178,6 +181,17 @@ final class PickupLocation {
                 .setNeutralButton("티맵 길안내", (d,w) -> navigate(p, null)).show();
             if (speechReady) speech.speak(text, TextToSpeech.QUEUE_FLUSH, null, "pickup-check");
         });
+    }
+    private void searchTmap(String name) {
+        String query = name.trim();
+        if (query.isEmpty()) return;
+        Uri url = Uri.parse("https://www.tmap.co.kr/tmap2/mobile/search.jsp").buildUpon()
+            .appendQueryParameter("name", query).build();
+        try {
+            activity.startActivity(new Intent(Intent.ACTION_VIEW, url));
+        } catch (ActivityNotFoundException e) {
+            message("티맵 검색 링크를 열 수 없습니다.");
+        }
     }
     private void navigate(JSONObject p, JSONObject start) {
         if (!valid(p) || (start != null && !valid(start))) { message("출발지와 도착지의 위치를 먼저 지정해 주세요."); return; }
