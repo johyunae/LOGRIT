@@ -1559,7 +1559,7 @@
             return check.getFullYear() === year && check.getMonth() === month-1 && check.getDate() === day
                 ? `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}` : '';
         }
-        function koreanBookingPlace(raw) {
+        function koreanBookingPlace(raw, fromImage = false) {
             const place = String(raw || '').trim();
             const address = place.match(/^(.+?)(?:\s*,\s*|\s+)Block\s+(\d+)\s*[-–]\s*(\d+)$/i);
             const prefixedAddress = place.match(/^#\s*(\d+)\s*[-–]\s*(\d+)\s*,?\s+(.+)$/);
@@ -1571,7 +1571,10 @@
                 ['eurosky', '유로스카이'], ['euro sky', '유로스카이'],
                 ['mijin tower palace', '미진타워팰리스'], ['myin tower palace', '미진타워팰리스']
             ]);
-            const koreanName = known.get(name.toLowerCase().replace(/\s+/g, ' '));
+            const normalizedName = name.toLowerCase().replace(/\s+/g, ' ');
+            const village = /^(?:s|에스)\s*(?:village|빌리지)$/.test(normalizedName)
+                || (fromImage && /^(?:o|0|오)\s*(?:village|빌리지)$/.test(normalizedName));
+            const koreanName = village ? 'S빌리지' : known.get(normalizedName);
             if (prefixedAddress && koreanName) return `${koreanName} ${prefixedAddress[1]}동 ${prefixedAddress[2]}호`;
             return address ? `${koreanName || name} ${address[2]}동 ${address[3]}호` : koreanName || place;
         }
@@ -1732,7 +1735,7 @@
                     const bookings = await LogritBookingImage.readRows({
                         img, worker:ocrWorker, status,
                         baseDate:document.getElementById('f-date')?.value || getLocalToday(),
-                        parseDate:readBookingDate, place:koreanBookingPlace, terminal:bookingAirportTerminal
+                        parseDate:readBookingDate, place:raw=>koreanBookingPlace(raw, true), terminal:bookingAirportTerminal
                     });
                     if (bookings) {
                         LogritBookingImage.review(bookings, window.saveImageBookings);
@@ -1867,8 +1870,8 @@
                         const flight=/^(?:[A-Z][A-Z0-9]|[0-9][A-Z])\d{2,5}$/.test(flightText) ? flightText : '';
                         const fromAirport = airport(row[5]);
                         const toAirport = airport(row[6]);
-                        const departure = fromAirport ? flight : koreanBookingPlace(row[5]);
-                        const arrival = toAirport ? [bookingAirportTerminal(row[6]),flight].filter(Boolean).join(' ') : koreanBookingPlace(row[6]);
+                        const departure = fromAirport ? flight : koreanBookingPlace(row[5], true);
+                        const arrival = toAirport ? [bookingAirportTerminal(row[6]),flight].filter(Boolean).join(' ') : koreanBookingPlace(row[6], true);
                         const departureInput=document.getElementById('f-departure');
                         const arrivalInput=document.getElementById('f-arrival');
                         if(departureInput)departureInput.value=departure;
