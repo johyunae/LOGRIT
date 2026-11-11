@@ -113,7 +113,15 @@
     };
     window.navigateDestinationLocation = () => {
         const destination = window.destinationEditorValue();
-        if (!destination) return choose('arrival', true);
+        if (!destination) {
+            const name = labelFor('arrival').trim();
+            if (!name) return alert('도착지 이름을 먼저 입력해 주세요.');
+            window.saveDraft();
+            if (native('searchDestination', {name}) === 'ok') {
+                alert('티맵에서 장소 이름으로 검색하려면 로그릿 앱을 업데이트해 주세요.');
+            }
+            return;
+        }
         window.saveDraft();
         native('navigate', {pickup: destination});
     };
