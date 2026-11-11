@@ -1998,11 +1998,13 @@
                         <div class="record-route">
                             <input type="text" id="f-departure" onchange="window.refreshRouteLocations()" placeholder="출발지 Departure" aria-label="출발지" class="input-field">
                             <button type="button" onclick="window.swapRoute()" class="w-10 h-10 rounded-xl bg-sub border border-custom flex items-center justify-center active:scale-90 transition-transform cursor-pointer" aria-label="출발지 도착지 바꾸기"><i data-lucide="arrow-left-right" class="w-5 h-5"></i></button>
-                            <input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" placeholder="도착지 Arrival" aria-label="도착지" class="input-field">
+                            <div class="flex items-center gap-1 min-w-0">
+                                <input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" placeholder="도착지 Arrival" aria-label="도착지" class="input-field min-w-0">
+                                <button type="button" data-pickup-features hidden class="tmap-button shrink-0" style="padding:0;width:44px;min-height:44px" onclick="window.navigateDestinationLocation()" aria-label="도착지 티맵 바로가기" title="도착지 티맵 바로가기"><i data-lucide="navigation" class="w-5 h-5 mx-auto" aria-hidden="true"></i></button>
+                            </div>
                         </div>
                         <input type="hidden" id="f-pickup-location"><input type="hidden" id="f-destination-location">
                         <div data-pickup-features hidden class="tmap-controls">
-                            <button type="button" class="tmap-button" onclick="window.navigateDestinationLocation()">도착지 티맵</button>
                             <button type="button" class="tmap-button" aria-haspopup="dialog" onclick="document.getElementById('tmap-dialog').showModal()">주소 설정</button>
                             <label class="tmap-auto"><input type="checkbox" id="f-pickup-auto" class="shrink-0" onchange="window.enablePickupAuto(this)"><span>10분·5분 전 자동 위치 확인</span></label>
                         </div>
