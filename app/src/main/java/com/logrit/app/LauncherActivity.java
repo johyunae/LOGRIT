@@ -246,7 +246,8 @@ public class LauncherActivity extends Activity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        if (webView != null) webView.loadUrl(getLaunchUrl(intent));
+        String launchUrl = getLaunchUrl(intent);
+        if (webView != null && !APP_URL.equals(launchUrl)) webView.loadUrl(launchUrl);
     }
 
     @Override
