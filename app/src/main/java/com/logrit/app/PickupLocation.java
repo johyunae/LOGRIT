@@ -54,7 +54,7 @@ final class PickupLocation {
                 result.confirm(ready ? "ready" : "pending");
             } else {
                 result.confirm("ok");
-                if ("choose".equals(action)) choose(request.optString("departure"), request.optString("role", "departure"));
+                if ("choose".equals(action)) choose(request.optString("departure"), request.optString("role", "departure"), request.optBoolean("navigate"));
                 else if ("check".equals(action)) check(request.getJSONObject("pickup"));
                 else if ("navigate".equals(action)) navigate(request.getJSONObject("pickup"), null);
                 else if ("route".equals(action)) navigate(request.getJSONObject("destination"), request.getJSONObject("pickup"));
@@ -95,63 +95,68 @@ final class PickupLocation {
             message("권한 설정 후 자동 위치 확인을 다시 켜 주세요.");
         }
     }
-    private void choose(String departure, String role) {
+    private void choose(String departure, String role, boolean navigateAfterSelection) {
         if (departure.length() > 200 || departure.trim().isEmpty()) return;
+        if (navigateAfterSelection) { searchAddress(departure, role, departure.trim(), true); return; }
         EditText input = new EditText(activity);
         input.setSingleLine(true); input.setText(departure);
         new AlertDialog.Builder(activity).setTitle("호텔·승차장 주소 검색").setView(input)
             .setMessage("같은 이름의 장소가 있을 수 있으니 지역과 도로명 주소를 함께 확인해 주세요.")
             .setPositiveButton("검색", (d,w) -> {
                 String query = input.getText().toString().trim();
-                if (query.isEmpty() || query.length() > 300) return;
-                Toast.makeText(activity, "주소를 찾고 있습니다.", Toast.LENGTH_SHORT).show();
-                new Thread(() -> {
-                    try {
-                        List<Address> matches = new Geocoder(activity, Locale.KOREAN).getFromLocationName(query, 5);
-                        activity.runOnUiThread(() -> {
-                            if (activity.isFinishing() || activity.isDestroyed()) return;
-                            if (matches == null || matches.isEmpty()) { message("주소를 찾지 못했습니다. 정확한 도로명 주소로 다시 검색해 주세요."); return; }
-                            String[] names = new String[matches.size()];
-                            for (int i=0;i<names.length;i++) names[i] = matches.get(i).getAddressLine(0);
-                            // Keep selection and confirmation in one dialog. Do not open a
-                            // second dialog while Android is dismissing the address list.
-                            final int[] selected = {-1};
-                            AlertDialog picker = new AlertDialog.Builder(activity)
-                                .setTitle("arrival".equals(role) ? "도착지 주소 선택" : "픽업 주소 선택")
-                                .setSingleChoiceItems(names, -1, (dialog, index) -> {
-                                    selected[0] = index;
-                                    ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
-                                })
-                                .setPositiveButton("선택한 주소로 지정", (dialog, which) -> {
-                                    int index = selected[0];
-                                    if (index < 0 || index >= matches.size()) return;
-                                    Address a = matches.get(index);
-                                    try {
-                                        JSONObject p = new JSONObject().put("role", "arrival".equals(role) ? "arrival" : "departure")
-                                            .put("name", (departure + " · " + names[index]).substring(0, Math.min(300, (departure + " · " + names[index]).length())))
-                                            .put("lat", a.getLatitude()).put("lng", a.getLongitude()).put("departure", departure).put("auto", false);
-                                        String field = "arrival".equals(role) ? "f-destination-location" : "f-pickup-location";
-                                        String script = "(function(){try{if(!window.logritPickupChosen)return false;"
-                                            + "window.logritPickupChosen(" + p + ");"
-                                            + "var e=document.getElementById('" + field + "');"
-                                            + "var v=JSON.parse(e&&e.value||'null');"
-                                            + "return !!v&&v.lat===" + a.getLatitude() + "&&v.lng===" + a.getLongitude()
-                                            + "&&v.departure===" + JSONObject.quote(departure) + ";}catch(e){return false;}})()";
-                                        view.evaluateJavascript(script, accepted -> {
-                                            if ("true".equals(accepted)) {
-                                                Toast.makeText(activity, "주소를 지정했습니다: " + names[index], Toast.LENGTH_LONG).show();
-                                            } else {
-                                                message("선택한 주소가 일정에 반영되지 않았습니다. 일정 화면을 다시 열고 지정해 주세요.");
-                                            }
-                                        });
-                                    } catch (Exception e) { message("위치를 지정하지 못했습니다."); }
-                                }).setNegativeButton("취소", null).create();
-                            picker.setOnShowListener(dialog -> picker.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false));
-                            picker.show();
-                        });
-                    } catch (Exception e) { activity.runOnUiThread(() -> message("주소 검색을 사용할 수 없습니다. 네트워크를 확인하고 다시 시도해 주세요.")); }
-                }, "pickup-address").start();
+                searchAddress(departure, role, query, false);
             }).setNegativeButton("취소", null).show();
+    }
+    private void searchAddress(String departure, String role, String query, boolean navigateAfterSelection) {
+        if (query.isEmpty() || query.length() > 300) return;
+        Toast.makeText(activity, "주소를 찾고 있습니다.", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            try {
+                List<Address> matches = new Geocoder(activity, Locale.KOREAN).getFromLocationName(query, 5);
+                activity.runOnUiThread(() -> {
+                    if (activity.isFinishing() || activity.isDestroyed()) return;
+                    if (matches == null || matches.isEmpty()) { message("주소를 찾지 못했습니다. 정확한 도로명 주소로 다시 검색해 주세요."); return; }
+                    String[] names = new String[matches.size()];
+                    for (int i=0;i<names.length;i++) names[i] = matches.get(i).getAddressLine(0);
+                    // Keep selection and confirmation in one dialog. Do not open a
+                    // second dialog while Android is dismissing the address list.
+                    final int[] selected = {-1};
+                    AlertDialog picker = new AlertDialog.Builder(activity)
+                        .setTitle("arrival".equals(role) ? "도착지 주소 선택" : "픽업 주소 선택")
+                        .setSingleChoiceItems(names, -1, (dialog, index) -> {
+                            selected[0] = index;
+                            ((AlertDialog) dialog).getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                        })
+                        .setPositiveButton(navigateAfterSelection ? "티맵에서 안내" : "선택한 주소로 지정", (dialog, which) -> {
+                            int index = selected[0];
+                            if (index < 0 || index >= matches.size()) return;
+                            Address a = matches.get(index);
+                            try {
+                                JSONObject p = new JSONObject().put("role", "arrival".equals(role) ? "arrival" : "departure")
+                                    .put("name", (departure + " · " + names[index]).substring(0, Math.min(300, (departure + " · " + names[index]).length())))
+                                    .put("lat", a.getLatitude()).put("lng", a.getLongitude()).put("departure", departure).put("auto", false);
+                                String field = "arrival".equals(role) ? "f-destination-location" : "f-pickup-location";
+                                String script = "(function(){try{if(!window.logritPickupChosen)return false;"
+                                    + "window.logritPickupChosen(" + p + ");"
+                                    + "var e=document.getElementById('" + field + "');"
+                                    + "var v=JSON.parse(e&&e.value||'null');"
+                                    + "return !!v&&v.lat===" + a.getLatitude() + "&&v.lng===" + a.getLongitude()
+                                    + "&&v.departure===" + JSONObject.quote(departure) + ";}catch(e){return false;}})()";
+                                view.evaluateJavascript(script, accepted -> {
+                                    if ("true".equals(accepted)) {
+                                        if (navigateAfterSelection) navigate(p, null);
+                                        else Toast.makeText(activity, "주소를 지정했습니다: " + names[index], Toast.LENGTH_LONG).show();
+                                    } else {
+                                        message("선택한 주소가 일정에 반영되지 않았습니다. 일정 화면을 다시 열고 지정해 주세요.");
+                                    }
+                                });
+                            } catch (Exception e) { message("위치를 지정하지 못했습니다."); }
+                        }).setNegativeButton("취소", null).create();
+                    picker.setOnShowListener(dialog -> picker.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false));
+                    picker.show();
+                });
+            } catch (Exception e) { activity.runOnUiThread(() -> message("주소 검색을 사용할 수 없습니다. 네트워크를 확인하고 다시 시도해 주세요.")); }
+        }, "pickup-address").start();
     }
     static boolean valid(JSONObject p) {
         if (p == null) return false;
