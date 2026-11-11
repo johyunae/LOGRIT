@@ -58,9 +58,9 @@ test('confirmed names are reused across schedules, while unconfirmed labels and 
   const flight=setup(11,storage); flight.elements['f-departure'].value='BX123'; flight.w.setPickupLocation(null); assert.equal(flight.w.pickupEditorValue(),null);
 });
 
-test('destination shortcut sends only the destination and requests an address when missing', () => {
+test('destination shortcut sends only the destination and searches TMAP by name when no address is linked', () => {
   const {w,calls} = setup();
-  w.navigateDestinationLocation(); assert.equal(calls.at(-1).action,'choose'); assert.equal(calls.at(-1).role,'arrival');
+  w.navigateDestinationLocation(); assert.equal(calls.at(-1).action,'searchDestination'); assert.equal(calls.at(-1).name,'국제');
   w.setDestinationLocation({...place,departure:'국제',lat:35.17,lng:128.94});
   w.navigateDestinationLocation(); assert.equal(calls.at(-1).action,'navigate');
   assert.equal(calls.at(-1).pickup.lng,128.94); assert.equal(calls.at(-1).destination,undefined);
