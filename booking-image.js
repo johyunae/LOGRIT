@@ -1,4 +1,3 @@
-/* Shared by image import and the row-isolation regression tests. */
 (function (root) {
     'use strict';
     const fields = [
@@ -150,7 +149,29 @@
                 if(type==='number'){input.min='1';input.max='999';}
                 input.className='input-field';input.value=booking[name]||'';input.setAttribute('aria-label',`${index+1}번째 ${text}`);
                 if(type==='textarea')input.rows=3;
-                wrap.appendChild(input);
+                if(type==='date'){
+                    const row=document.createElement('div');
+                    row.className='flex items-stretch gap-2';
+                    input.style.cssText='flex:1;min-width:0';
+                    const calendar=document.createElement('span');
+                    calendar.className='input-field';
+                    calendar.style.cssText='position:relative;display:grid;place-items:center;width:48px;flex:none;padding:0';
+                    const icon=document.createElement('span');
+                    icon.textContent='📅';
+                    icon.setAttribute('aria-hidden','true');
+                    const picker=document.createElement('input');
+                    picker.type='date';
+                    picker.setAttribute('aria-label',`${index+1}번째 일정 달력에서 날짜 선택`);
+                    picker.style.cssText='position:absolute;inset:0;width:100%;height:100%;opacity:0';
+                    picker.value=input.value;
+                    input.addEventListener('input',()=>{picker.value=input.value;});
+                    picker.addEventListener('change',()=>{if(picker.value)input.value=picker.value;});
+                    calendar.append(icon,picker);
+                    row.append(input,calendar);
+                    wrap.appendChild(row);
+                } else {
+                    wrap.appendChild(input);
+                }
                 if (name==='departure' || name==='arrival') {
                     const hint=document.createElement('span');hint.className='block text-xs text-dim';
                     const updateHint=()=>{
