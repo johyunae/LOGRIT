@@ -2058,8 +2058,8 @@
                         <input type="hidden" id="f-extra-checks" value="[]">
                         <div id="f-extra-check-list"></div>
                         <button type="button" id="f-payment-add" onclick="window.addPaymentCheck()" class="card-payment-status">＋ 확인 항목 추가</button>
-                        <div class="flex items-center gap-2">
-                            <textarea id="f-passenger-name" rows="3" placeholder="이름 Name" aria-label="이름 Name" class="input-field min-w-0 flex-1 leading-relaxed"></textarea>
+                        <div class="flex items-start gap-2">
+                            <textarea id="f-passenger-name" rows="3" style="field-sizing: content; min-height: 5rem; overflow-wrap: anywhere;" placeholder="이름 Name" aria-label="이름 Name" class="input-field min-w-0 flex-1 resize-none leading-relaxed"></textarea>
                             <button type="button" onclick="window.usePickupContact()" aria-label="휴대폰 연락처 열기" class="shrink-0 p-3 rounded-xl border border-custom"><i data-lucide="phone" aria-hidden="true"></i></button>
                         </div>
                         <div class="flex items-center gap-2 text-sm" aria-live="polite">
