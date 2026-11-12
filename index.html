@@ -2059,7 +2059,7 @@
                         <div id="f-extra-check-list"></div>
                         <button type="button" id="f-payment-add" onclick="window.addPaymentCheck()" class="card-payment-status">＋ 확인 항목 추가</button>
                         <div class="flex items-center gap-2">
-                            <textarea id="f-passenger-name" rows="3" placeholder="이름 (한 줄에 한 명)" aria-label="이름 (한 줄에 한 명)" class="input-field min-w-0 flex-1 leading-relaxed"></textarea>
+                            <textarea id="f-passenger-name" rows="3" placeholder="이름 Name" aria-label="이름 Name" class="input-field min-w-0 flex-1 leading-relaxed"></textarea>
                             <button type="button" onclick="window.usePickupContact()" aria-label="휴대폰 연락처 열기" class="shrink-0 p-3 rounded-xl border border-custom"><i data-lucide="phone" aria-hidden="true"></i></button>
                         </div>
                         <div class="flex items-center gap-2 text-sm" aria-live="polite">
@@ -2067,7 +2067,7 @@
                             <button id="pickup-contact-change" type="button" onclick="window.usePickupContact(true)" class="underline" hidden>연락처 변경</button>
                         </div>
                         <input id="f-pickup-contact" type="hidden">
-                        <input id="f-pickup-company" type="text" placeholder="픽업 회사명" aria-label="픽업 회사명" class="input-field">
+                        <input id="f-pickup-company" type="text" placeholder="픽업 회사명 Pickup Company" aria-label="픽업 회사명 Pickup Company" class="input-field">
                         <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
                         <section id="memo-photo-section" class="px-1 pt-2" aria-label="메모 아래 첨부 사진">
                             <div class="flex items-center justify-between gap-2">
