@@ -155,7 +155,7 @@
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: var(--text-bold); color: var(--bg-color); padding: 14px 28px; border-radius: 50px; font-size: 14px; font-weight:bold; z-index: 9999; opacity: 0; visibility: hidden; transition: 0.3s; pointer-events: none; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
         #toast.visible { opacity: 1; visibility: visible; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-    
+
         /* 전체 세로 여백을 살짝 압축 — 폰트 크기는 유지 */
         .input-field { padding-top: 13px; padding-bottom: 13px; }
         .p-5 { padding-top: 1.05rem !important; padding-bottom: 1.05rem !important; }
@@ -168,7 +168,7 @@
         .mb-6 { margin-bottom: 1.25rem !important; }
         .mb-4 { margin-bottom: 0.85rem !important; }
 
-    
+
         /* Compact record list; retain date/time size and all memo content. */
         #record-list-content .record-card { padding:10px 12px; margin-bottom:6px; border-radius:14px; }
         #record-list-content .record-card-head { padding-bottom:5px; margin-bottom:5px; }
@@ -198,7 +198,10 @@
         .record-editor-shell > #record-form { padding-bottom:max(24px, env(safe-area-inset-bottom)); }
 
         .record-route { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:8px; align-items:end; }
-        .record-field-label { display:block; margin:0 0 4px; font-size:13px; font-weight:700; overflow-wrap:anywhere; }
+        .record-input-hint { position:relative; display:block; min-width:0; width:100%; }
+        .record-input-hint > span { display:none; position:absolute; inset:14px 14px auto; font-size:13px; line-height:1.2; color:var(--text-dim); pointer-events:none; }
+        .record-input-hint > :placeholder-shown + span { display:block; }
+        .record-input-hint .hint-english { opacity:.7; font-weight:normal; overflow-wrap:anywhere; }
         .record-passenger-name { display:block; field-sizing:content; min-height:5rem; overflow-wrap:anywhere; resize:none; }
         .tmap-button { min-height:44px; padding:8px 16px; border:1px solid var(--border-color); border-radius:12px; background:var(--sub-bg); font-weight:800; }
         .tmap-button[hidden] { display:none; }
@@ -982,7 +985,7 @@
                         </div>`;
                     }
                 }
-                
+
                 root.innerHTML = `
                     <div class="animate-in fade-in">
                         <div class="sticky-sub calendar-fixed-sub shadow-sm">
@@ -990,7 +993,7 @@
                                 <div class="flex items-baseline gap-2"><h2 class="text-[31px] font-black text-important">${m+1}</h2><span class="text-[19px] font-medium italic text-dim opacity-60 tracking-wide" style="font-family: Georgia, serif;">${monthNamesEn[m]} ${y}</span></div>
                                 <div class="flex gap-0.5 bg-sub px-1 py-0.5 rounded-lg border border-custom"><button onclick="moveMonth(-1)" class="p-1.5 active:scale-90 text-important cursor-pointer" aria-label="이전 달"><i data-lucide="chevron-left" class="w-4 h-4"></i></button><button onclick="moveMonth(1)" class="p-1.5 active:scale-90 text-important cursor-pointer" aria-label="다음 달"><i data-lucide="chevron-right" class="w-4 h-4"></i></button></div>
                             </div>
-                            
+
                             <div class="grid grid-cols-7 text-center text-[12px] font-extrabold text-dim" style="margin-top:6px; padding-bottom:0; margin-left:-20px; margin-right:-20px; width:calc(100% + 40px);"><div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div></div>
                         </div>
                         <div class="calendar-grid calendar-fixed-grid">${gridHtml}</div>
@@ -2000,12 +2003,12 @@
                     <div class="space-y-2">
                         <input type="text" id="f-date" class="input-field" readonly inputmode="none" role="button" aria-label="일정 날짜 선택" aria-haspopup="dialog" onclick="window.openRecordDatePicker()" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.openRecordDatePicker(); }" onchange="window.refreshMemoPhotos()" required>
                         <div class="record-route">
-                            <div class="min-w-0"><label for="f-departure" class="record-field-label">출발지 Departure</label><input type="text" id="f-departure" onchange="window.refreshRouteLocations()" class="input-field"></div>
+                            <div class="min-w-0"><label class="record-input-hint"><input type="text" id="f-departure" placeholder=" " aria-label="출발지 Departure" onchange="window.refreshRouteLocations()" class="input-field"><span aria-hidden="true">출발지 <b class="hint-english">Departure</b></span></label></div>
                             <button type="button" onclick="window.swapRoute()" class="w-10 h-10 rounded-xl bg-sub border border-custom flex items-center justify-center active:scale-90 transition-transform cursor-pointer" aria-label="출발지 도착지 바꾸기"><i data-lucide="arrow-left-right" class="w-5 h-5"></i></button>
                             <div class="min-w-0">
-                                <label for="f-arrival" class="record-field-label">도착지 Arrival</label>
+
                                 <div class="flex items-center gap-1 min-w-0">
-                                <input type="text" id="f-arrival" onchange="window.refreshRouteLocations()" class="input-field min-w-0">
+                                <label class="record-input-hint"><input type="text" id="f-arrival" placeholder=" " aria-label="도착지 Arrival" onchange="window.refreshRouteLocations()" class="input-field min-w-0"><span aria-hidden="true">도착지 <b class="hint-english">Arrival</b></span></label>
                                 <button type="button" data-pickup-features hidden class="tmap-button shrink-0" style="padding:0;width:44px;min-height:44px" onclick="window.navigateDestinationLocation()" aria-label="도착지 티맵 바로가기" title="도착지 티맵 바로가기"><i data-lucide="navigation" class="w-5 h-5 mx-auto" aria-hidden="true"></i></button>
                                 </div>
                             </div>
@@ -2039,13 +2042,13 @@
                             <button type="button" class="btn-primary" onclick="window.navigateScheduleRoute()">출발지 → 도착지 경로 Show Route</button>
                         </dialog>
                         <div class="grid grid-cols-2 gap-3">
-                            <input type="text" id="f-time" placeholder="시간 Time" aria-label="시간 Time" title="예: 710 / Example: 710" inputmode="text" oninput="window.autoFormatTime(this); window.saveDraft();" onblur="window.formatTimeOnBlur(this); window.saveDraft();" class="input-field font-mono">
-                            <input type="number" id="f-people" placeholder="인원 People" class="input-field">
+                            <label class="record-input-hint"><input type="text" id="f-time" placeholder=" " aria-label="시간 Time" title="예: 710 / Example: 710" inputmode="text" oninput="window.autoFormatTime(this); window.saveDraft();" onblur="window.formatTimeOnBlur(this); window.saveDraft();" class="input-field font-mono"><span aria-hidden="true">시간 <b class="hint-english">Time</b></span></label>
+                            <label class="record-input-hint"><input type="number" id="f-people" placeholder=" " aria-label="인원 People" class="input-field"><span aria-hidden="true">인원 <b class="hint-english">People</b></span></label>
                         </div>
-                        <input type="text" id="f-supplier" placeholder="거래처명 Client" class="input-field">
+                        <label class="record-input-hint"><input type="text" id="f-supplier" placeholder=" " aria-label="거래처명 Client" class="input-field"><span aria-hidden="true">거래처명 <b class="hint-english">Client</b></span></label>
                         
                         <div class="relative w-full text-important">
-                            <input type="text" id="f-amount-display" placeholder="매출 Amount" title="음수 입력 가능 / Negative amounts allowed" inputmode="text" oninput="window.handleAmountInput(this); window.saveDraft();" class="input-field font-bold text-[18px] pr-10 text-important" style="color: var(--brand-color)">
+                            <label class="record-input-hint"><input type="text" id="f-amount-display" placeholder=" " aria-label="매출 Amount" title="음수 입력 가능 / Negative amounts allowed" inputmode="text" oninput="window.handleAmountInput(this); window.saveDraft();" class="input-field font-bold text-[18px] pr-10 text-important" style="color: var(--brand-color)"><span aria-hidden="true">매출 <b class="hint-english">Amount</b></span></label>
                             <span class="absolute right-5 top-1/2 -translate-y-1/2 opacity-60 font-bold text-[16px] text-dim">₩</span>
                         </div>
                         
@@ -2065,19 +2068,18 @@
                         <div id="f-extra-check-list"></div>
                         <button type="button" id="f-payment-add" onclick="window.addPaymentCheck()" class="card-payment-status">＋ 확인 항목 추가 Add Checklist Item</button>
                         <div>
-                            <div class="flex items-center justify-between gap-2 mb-1">
-                                <label for="f-passenger-name" class="record-field-label">이름 Name</label>
+                            <div class="flex justify-end mb-1">
                                 <button type="button" onclick="window.usePickupContact()" aria-label="휴대폰 연락처 열기 Open Contacts" title="연락처 Contacts" class="shrink-0 p-3 rounded-xl border border-custom"><i data-lucide="phone" aria-hidden="true"></i></button>
                             </div>
-                            <textarea id="f-passenger-name" rows="3" class="input-field record-passenger-name leading-relaxed"></textarea>
+                            <label class="record-input-hint"><textarea id="f-passenger-name" placeholder=" " aria-label="이름 Name" rows="3" class="input-field record-passenger-name leading-relaxed"></textarea><span aria-hidden="true">이름 <b class="hint-english">Name</b></span></label>
                         </div>
                         <div class="flex items-center gap-2 text-sm" aria-live="polite">
                             <span id="pickup-contact-status"></span>
                             <button id="pickup-contact-change" type="button" onclick="window.usePickupContact(true)" class="underline" hidden>연락처 변경 Change Contact</button>
                         </div>
                         <input id="f-pickup-contact" type="hidden">
-                        <input id="f-pickup-company" type="text" placeholder="회사명 Company" aria-label="회사명 Company" class="input-field">
-                        <textarea id="f-note" placeholder="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
+                        <label class="record-input-hint"><input id="f-pickup-company" placeholder=" " aria-label="회사명 Company" type="text" class="input-field"><span aria-hidden="true">회사명 <b class="hint-english">Company</b></span></label>
+                        <label class="record-input-hint"><textarea id="f-note" placeholder=" " aria-label="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() =><span aria-hidden="true">상세 메모 <b class="hint-english">Note</b></span></label> this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
                         <section id="memo-photo-section" class="px-1 pt-2" aria-label="메모 아래 첨부 사진">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-[14px] font-bold text-important">첨부 사진 Attachments</span>
