@@ -2060,20 +2060,18 @@
                         </div>
                         <input type="hidden" id="f-extra-checks" value="[]">
                         <div id="f-extra-check-list"></div>
-                        <button type="button" id="f-payment-add" onclick="window.addPaymentCheck()" class="card-payment-status">＋ 확인 항목 추가 Add Checklist Item</button>
-                        <div>
-                            <div class="flex justify-end mb-1">
-                                <button type="button" onclick="window.usePickupContact()" aria-label="휴대폰 연락처 열기 Open Contacts" title="연락처 Contacts" class="shrink-0 p-3 rounded-xl border border-custom"><i data-lucide="phone" aria-hidden="true"></i></button>
-                            </div>
-                            <label class="record-input-hint"><textarea id="f-passenger-name" placeholder=" " aria-label="이름 Name" rows="3" class="input-field record-passenger-name leading-relaxed"></textarea><span aria-hidden="true">이름 <b class="hint-english">Name</b></span></label>
+                        <div class="flex items-center justify-between gap-2">
+                            <button type="button" id="f-payment-add" onclick="window.addPaymentCheck()" class="card-payment-status">＋ 확인 항목 추가 Add Checklist Item</button>
+                            <button type="button" onclick="window.usePickupContact()" aria-label="휴대폰 연락처 열기 Open Contacts" title="연락처 Contacts" class="shrink-0 p-3 rounded-xl border border-custom"><i data-lucide="phone" aria-hidden="true"></i></button>
                         </div>
+                        <label class="record-input-hint"><textarea id="f-passenger-name" placeholder=" " aria-label="이름 Name" rows="3" class="input-field record-passenger-name leading-relaxed"></textarea><span aria-hidden="true">이름 <b class="hint-english">Name</b></span></label>
                         <div class="flex items-center gap-2 text-sm" aria-live="polite">
                             <span id="pickup-contact-status"></span>
                             <button id="pickup-contact-change" type="button" onclick="window.usePickupContact(true)" class="underline" hidden>연락처 변경 Change Contact</button>
                         </div>
                         <input id="f-pickup-contact" type="hidden">
                         <label class="record-input-hint"><input id="f-pickup-company" placeholder=" " aria-label="회사명 Company" type="text" class="input-field"><span aria-hidden="true">회사명 <b class="hint-english">Company</b></span></label>
-                        <label class="record-input-hint"><textarea id="f-note" placeholder=" " aria-label="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() =><span aria-hidden="true">상세 메모 <b class="hint-english">Note</b></span></label> this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea>
+                        <label class="record-input-hint"><textarea id="f-note" placeholder=" " aria-label="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea><span aria-hidden="true">상세 메모 <b class="hint-english">Note</b></span></label>
                         <section id="memo-photo-section" class="px-1 pt-2" aria-label="메모 아래 첨부 사진">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-[14px] font-bold text-important">첨부 사진 Attachments</span>
