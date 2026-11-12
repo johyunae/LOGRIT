@@ -1,4 +1,4 @@
-const CACHE_NAME = 'logrit-pwa-v241';
+const CACHE_NAME = 'logrit-pwa-v242';
 const APP_SHELL = [
   '/LOGRIT/',
   '/LOGRIT/index.html',
