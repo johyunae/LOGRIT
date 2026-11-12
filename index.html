@@ -2014,10 +2014,7 @@
                             </div>
                         </div>
                         <input type="hidden" id="f-pickup-location"><input type="hidden" id="f-destination-location">
-                        <div data-pickup-features hidden class="tmap-controls">
-                            <button type="button" class="tmap-button" aria-haspopup="dialog" onclick="document.getElementById('tmap-dialog').showModal()">주소 설정<br><span class="text-xs">Address Settings</span></button>
-                            <label class="tmap-auto"><input type="checkbox" id="f-pickup-auto" class="shrink-0" onchange="window.enablePickupAuto(this)"><span>10분·5분 전 자동 위치 확인<br><span class="text-xs">Auto-check location 10 &amp; 5 min before</span></span></label>
-                        </div>
+                        <input type="checkbox" id="f-pickup-auto" hidden>
                         <dialog id="tmap-dialog" class="tmap-dialog" aria-labelledby="tmap-dialog-title">
                             <div class="flex items-center justify-between mb-3">
                                 <h4 id="tmap-dialog-title" class="text-xl font-black">티맵 TMAP</h4>
