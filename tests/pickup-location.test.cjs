@@ -9,7 +9,7 @@ function setup(version = 11, storage = new Map()) {
     'f-arrival':{value:'국제'},'f-destination-location':{value:''},'destination-location-label':{textContent:''}
   };
   const calls = [], alerts = [];
-  const c = {window: {}, document: {getElementById: id => elements[id], querySelectorAll: () => []}, navigator: {userAgent: `LOGRIT-Android/${version}`},
+  const c = {window: {open() {}}, URL, document: {getElementById: id => elements[id], querySelectorAll: () => []}, navigator: {userAgent: `LOGRIT-Android/${version}`},
     db: [], localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)}, prompt: (text) => { calls.push(JSON.parse(text.slice('LOGRIT_PICKUP:'.length))); return 'ready'; }, alert: text => alerts.push(text)};
   c.window.saveDraft = () => {};
   vm.createContext(c); vm.runInContext(fs.readFileSync('pickup-location.js','utf8'), c);

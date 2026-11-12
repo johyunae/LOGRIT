@@ -117,8 +117,10 @@
             const name = labelFor('arrival').trim();
             if (!name) return alert('도착지 이름을 먼저 입력해 주세요.');
             window.saveDraft();
-            if (native('searchDestination', {name}) === 'ok') {
-                alert('티맵에서 장소 이름으로 검색하려면 로그릿 앱을 업데이트해 주세요.');
+            if (native('searchDestination', {name}) !== 'handled') {
+                const searchUrl = new URL('https://www.tmap.co.kr/tmap2/mobile/search.jsp');
+                searchUrl.searchParams.set('name', name);
+                window.open(searchUrl.href, '_blank', 'noopener');
             }
             return;
         }
