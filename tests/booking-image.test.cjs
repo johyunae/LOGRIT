@@ -45,7 +45,7 @@ test('different row dates, routes, people and remarks stay separate across a yea
     const second=booking.rowBooking(cells({0:'1-Jan',2:'19:35',3:'5',5:'Busan International Airport',6:'Mijin Tower Palace',7:'KE1407',10:'SECOND ONLY'}),'2026-11-03',first.date,c.readBookingDate,c.koreanBookingPlace,c.bookingAirportTerminal);
     assert.equal(first.date,'2026-12-12');assert.equal(first.time,'07:00');assert.equal(first.people,'4');assert.equal(first.arrival,'국제 KE1406');
     assert.equal(second.date,'2027-01-01');assert.equal(second.time,'19:35');assert.equal(second.people,'5');assert.equal(second.departure,'KE1407');assert.equal(second.arrival,'미진타워팰리스');
-    assert.ok(first.note.endsWith('HL'));assert.ok(!first.note.includes('SECOND ONLY'));assert.ok(!second.note.includes('HL'));assert.ok(!second.note.includes('DRIVER'));
+    assert.equal(first.passengerName,cells()[4]);assert.equal(first.note,'HL');assert.ok(!first.note.includes('SECOND ONLY'));assert.ok(!second.note.includes('HL'));assert.ok(!second.note.includes('DRIVER'));
     assert.equal(booking.validate([first,second]).length,2);
 });
 test('explicit years are respected; unreadable dates, people and flight numbers are left for correction',()=>{
@@ -59,6 +59,10 @@ test('explicit years are respected; unreadable dates, people and flight numbers 
 test('retrying import skips existing rows and duplicate rows within the selected batch',()=>{
     const first=row(),second=row({2:'19:35'});
     assert.deepEqual(booking.freshRows([first,second,first],[first]),[second]);
+    const legacy={...first,passengerName:undefined,note:[first.passengerName,first.note].join('\n')};
+    assert.deepEqual(booking.freshRows([first],[legacy]),[]);
+    const differentPassenger={...first,passengerName:'Jane Kim, Alex Lee'};
+    assert.deepEqual(booking.freshRows([differentPassenger],[first]),[differentPassenger]);
 });
 test('OCR uses a separate crop for each cell and each row, keeping even failed rows for review',async()=>{
     const g=gridImage(3),c=parser(),crops=[],values=[];
@@ -88,7 +92,7 @@ function saveApp(fail=false) {
 test('batch save adds independent IDs, preserves existing records and skips repeated imports',()=>{
     const a=saveApp(),rows=[row(),row({2:'19:35'})];a.c.saveImageBookings(rows);
     const saved=a.stored();assert.equal(saved.length,3);assert.equal(saved[0].id,'keep');assert.notEqual(saved[1].id,saved[2].id);
-    assert.equal(saved[1].supplier,'미지정');assert.equal(saved[1].amount,0);assert.equal(saved[1].people,4);
+    assert.equal(saved[1].supplier,'미지정');assert.equal(saved[1].amount,0);assert.equal(saved[1].people,4);assert.equal(saved[1].passengerName,rows[0].passengerName);
     a.c.saveImageBookings(rows);assert.equal(a.stored().length,3);
 });
 test('quota failure leaves DB and reviewable data intact; existing edit form is not replaced',()=>{
@@ -116,8 +120,11 @@ test('review supports selection, corrections, cancellation and errors before sav
         const dates=dom.nodes.filter(n=>n.placeholder==='YYYY-MM-DD');dates[0].value='';
         form.onsubmit({preventDefault(){}});assert.equal(saved,undefined);
         assert.ok(dom.nodes.find(n=>n.attributes.role==='alert').textContent.includes('날짜'));
+        const passenger=dom.nodes.find(n=>n.attributes['aria-label']==='1번째 이름 (Name)');
+        assert.equal(passenger.tag,'textarea');assert.equal(passenger.value,cells()[4]);
+        passenger.value='Jane Kim, Alex Lee, Sam Park';
         dates[0].value='2026-12-13';form.onsubmit({preventDefault(){}});
-        assert.equal(saved.length,1);assert.equal(saved[0].date,'2026-12-13');assert.ok(dom.document.getElementById('booking-image-review')===undefined);
+        assert.equal(saved.length,1);assert.equal(saved[0].date,'2026-12-13');assert.equal(saved[0].passengerName,'Jane Kim, Alex Lee, Sam Park');assert.ok(dom.document.getElementById('booking-image-review')===undefined);
         saved=undefined;booking.review([row(),row()],()=>{saved=true;});
         dom.nodes.filter(n=>n.tag==='button' && n.textContent==='닫기').at(-1).onclick();assert.equal(saved,undefined);
     } finally {global.document=original;}

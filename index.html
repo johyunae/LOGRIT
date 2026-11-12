@@ -213,7 +213,7 @@
         .record-editor-shell h3 + span { display:none; }
 
     </style>
-    <script src="/LOGRIT/booking-image.js?v=20261106-2"></script>
+    <script src="/LOGRIT/booking-image.js?v=20261112-names"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="pb-40 no-scrollbar">
@@ -1583,7 +1583,7 @@
             return /domestic|국내/i.test(raw || '') ? '국내' : /international|국제/i.test(raw || '') ? '국제' : '';
         }
 
-        window.parseAutoInputText = (raw, imageRemark = '') => {
+        window.parseAutoInputText = (raw, imageRemark = '', fromImage = false) => {
             const text = String(raw || '').replace(/\r/g, '').replace(/\\n/g, '\n').trim();
             if (!text) { showToast('붙여넣을 내용이 없습니다.'); return; }
             const lines = text.split('\n').map(v => v.trim().replace(/^[.．•·●]+\s*(?=\S)/, '')).filter(Boolean);
@@ -1677,7 +1677,8 @@
             if (flightIndex>=0 && (arrival.includes(flight) || departure===flight)) markIndex(flightIndex);
             const dateOnly=/^(?:(?:20\d{2})\s*[.\/-]\s*)?\d{1,2}\s*(?:월|[.\/-])\s*\d{1,2}\s*일?$|^\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[-\s]20\d{2})?$|^(?:mon|tue|wed|thu|fri|sat|sun)$/i;
             const remaining=lines.filter((line,i)=>!used.has(i) && line!==customerName && !dateOnly.test(line) && !/^(?:[01]?\d|2[0-3])[:：][0-5]\d$/.test(line) && !/^(?:안녕하세요|감사합니다|hello|thank\s+you|thanks)[\s,.!。]*$/i.test(line));
-            const note=[...new Set([customerName,remark,...remaining].filter(Boolean))].join('\n');
+            if (fromImage) set('f-passenger-name',customerName);
+            const note=[...new Set([fromImage ? '' : customerName,remark,...remaining].filter(Boolean))].join('\n');
             set('f-date',date);set('f-departure',koreanBookingPlace(departure));set('f-arrival',koreanBookingPlace(arrival));
             set('f-time',time);set('f-people',people);set('f-supplier',supplier);set('f-amount-display',amount);
             const noteEl=document.getElementById('f-note');if(noteEl)noteEl.value=note;
@@ -1692,6 +1693,7 @@
             const records = fresh.map(row => ({
                 id:newPhotoRecordId(), date:row.date, time:row.time, people:Number(row.people),
                 departure:row.departure, arrival:row.arrival, note:row.note || '내용없음',
+                passengerName:row.passengerName || '',
                 amount:0, supplier:'미지정', color:'', extraChecks:[],
                 cardPaymentDone:false, cardPaymentAmount:0, updatedAt:now
             }));
@@ -1865,7 +1867,6 @@
                         if(dateInput)dateInput.value=date;
                         set('f-time',(row[2].match(/([0-2]?\d[:：]\d{2})/)||[])[1]?.replace('：',':'));
                         set('f-people',(row[3].match(/\d+/)||[])[0]);
-                        // 예약표의 고객 이름은 거래처가 아니라 메모에 기록한다.
                         const airport = v => /(?:busan\s*)?(?:international\s*airport|airport)|김해|국제공항|공항/i.test(v||'');
                         const flightText=(row[7]||'').replace(/\s+/g,'').toUpperCase();
                         const flight=/^(?:[A-Z][A-Z0-9]|[0-9][A-Z])\d{2,5}$/.test(flightText) ? flightText : '';
@@ -1877,10 +1878,10 @@
                         const arrivalInput=document.getElementById('f-arrival');
                         if(departureInput)departureInput.value=departure;
                         if(arrivalInput)arrivalInput.value=arrival;
-                        // 고객 이름과 REMARK 안내 문구를 메모에 함께 기록한다.
                         const note=document.getElementById('f-note');
                         const customerName=(row[4]||'').replace(/\\n/g,' ').replace(/\s+/g,' ').replace(/\s*\+\s*(\d+)$/,' +$1').trim();
-                        if(note) note.value=[customerName,imageRemark].filter(Boolean).join('\n');
+                        set('f-passenger-name',customerName);
+                        if(note) note.value=imageRemark;
                         document.getElementById('auto-input-modal')?.remove(); window.saveDraft();
                         const unread=[];
                         if(!date)unread.push('날짜');
@@ -1889,7 +1890,7 @@
                         return;
                     }
                 }
-                window.parseAutoInputText(text,imageRemark);
+                window.parseAutoInputText(text,imageRemark,true);
             } catch(err){console.error(err);if(status)status.textContent='이미지를 읽지 못했습니다. 다른 이미지로 다시 시도해 주세요.';}
             finally { if(ocrWorker) await ocrWorker.terminate(); }
         };

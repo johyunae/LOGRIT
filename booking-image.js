@@ -2,6 +2,7 @@
     'use strict';
     const fields = [
         ['date', '날짜', 'date'], ['time', '시간', 'time'], ['people', '인원', 'number'],
+        ['passengerName', '이름 (Name)', 'textarea'],
         ['departure', '출발지', 'text'], ['arrival', '도착지', 'text'], ['note', '메모', 'textarea']
     ];
     function lines(size, count, isDark) {
@@ -55,7 +56,8 @@
             time:timeMatch ? timeMatch[1].padStart(2,'0')+':'+timeMatch[2] : '', people,
             departure:airport(cells[5]) ? flightOK : place(cells[5]),
             arrival:airport(cells[6]) ? [terminal(cells[6]),flightOK].filter(Boolean).join(' ') : place(cells[6]),
-            note:[cells[4],cells[10]].filter(Boolean).join('\n')
+            passengerName:cells[4] || '',
+            note:cells[10] || ''
         };
     }
     async function readRows({img, worker, status, baseDate, parseDate, place, terminal}) {
@@ -110,12 +112,21 @@
         return bookings;
     }
     function key(row, place = value => value) {
-        return JSON.stringify([row.date,row.time,place(row.departure),place(row.arrival),String(Number(row.people)),/^(?:내용없음|내용 없음)$/.test(row.note)?'':row.note]
+        return JSON.stringify([row.date,row.time,place(row.departure),place(row.arrival),String(Number(row.people)),/^(?:내용없음|내용 없음)$/.test(row.note)?'':row.note,row.passengerName]
             .map(value=>String(value||'').trim().replace(/\s+/g,' ')));
     }
     function freshRows(rows, existing, place = value => value) {
         const seen=new Set(existing.map(row=>key(row,place)));
-        return rows.filter(row=>{const k=key(row,place);if(seen.has(k))return false;seen.add(k);return true;});
+        return rows.filter(row=>{
+            const currentKey=key(row,place);
+            // Older image imports stored the passenger name on the first line of the memo.
+            const legacyKey=row.passengerName && key({
+                ...row, passengerName:'', note:[row.passengerName,row.note].filter(Boolean).join('\n')
+            },place);
+            if(seen.has(currentKey) || (legacyKey && seen.has(legacyKey)))return false;
+            seen.add(currentKey);
+            return true;
+        });
     }
     function review(bookings, save) {
         document.getElementById('booking-image-review')?.remove();

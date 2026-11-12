@@ -1,8 +1,8 @@
-const CACHE_NAME = 'logrit-pwa-v238';
+const CACHE_NAME = 'logrit-pwa-v239';
 const APP_SHELL = [
   '/LOGRIT/',
   '/LOGRIT/index.html',
-  '/LOGRIT/booking-image.js?v=20261106-2',
+  '/LOGRIT/booking-image.js?v=20261112-names',
   '/LOGRIT/pickup-location.js?v=20261107-tmap',
   '/LOGRIT/manifest.json',
   '/LOGRIT/icon.png',
