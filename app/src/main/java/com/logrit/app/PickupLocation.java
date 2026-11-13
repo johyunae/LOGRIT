@@ -185,12 +185,12 @@ final class PickupLocation {
     private void searchTmap(String name) {
         String query = name.trim();
         if (query.isEmpty()) return;
-        Uri url = Uri.parse("https://www.tmap.co.kr/tmap2/mobile/search.jsp").buildUpon()
+        Uri search = new Uri.Builder().scheme("tmap").authority("search")
             .appendQueryParameter("name", query).build();
         try {
-            activity.startActivity(new Intent(Intent.ACTION_VIEW, url));
+            activity.startActivity(new Intent(Intent.ACTION_VIEW, search).setPackage("com.skt.tmap.ku"));
         } catch (ActivityNotFoundException e) {
-            message("티맵 검색 링크를 열 수 없습니다.");
+            message("티맵 앱에서 도착지 검색을 열 수 없습니다.");
         }
     }
     private void navigate(JSONObject p, JSONObject start) {
