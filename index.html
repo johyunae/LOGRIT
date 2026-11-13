@@ -980,12 +980,12 @@
                             ${selectedItems.length ? selectedItems.map(it => {
                                 const name = cleanText(it.passengerName);
                                 const supplier = cleanText(it.supplier);
-                                const company = cleanText(it.pickupCompany, supplier);
+                                const company = cleanText(it.pickupCompany);
                                 const heading = [...new Set([name, company].filter(Boolean))];
-                                const title = paymentAttribute(heading.join(' · ') || '일정');
+                                const title = paymentAttribute(heading.join(' · '));
                                 const note = cleanText(it.note);
                                 const memo = note && !heading.includes(note) ? `<span class="daily-inline-memo">${paymentAttribute(note)}</span>` : '';
-                                const details = [company !== supplier ? paymentAttribute(supplier) : '', formatRouteLabel(it.departure), formatRouteLabel(it.arrival), Number(it.people) > 0 ? Number(it.people)+'명' : ''].filter(Boolean).join(' · ');
+                                const details = [paymentAttribute(supplier), formatRouteLabel(it.departure), formatRouteLabel(it.arrival), Number(it.people) > 0 ? Number(it.people)+'명' : ''].filter(Boolean).join(' · ');
                                 const amountHtml = showAmounts && Number(it.amount) !== 0 ? `<span class="daily-inline-amount">${formatKRW(Number(it.amount))}원</span>` : '';
                                 return `<div class="daily-inline-item${it.color ? ' has-color' : ''}"${it.color ? ` style="--item-color:${it.color}"` : ''} onclick="event.stopPropagation(); openEntryModal('${it.id}')"><span class="daily-inline-time">${smartTimeFormat(it.time) || ''}</span><span class="daily-inline-text"><span class="daily-inline-mission">${renderCardPayment(it)}</span>${title}${details ? `<span class="daily-inline-detail">${details}</span>` : ''}${memo}${renderSchedulePhotos(it.id, false)}</span>${amountHtml}</div>`;
                             }).join('') : '<div class="daily-inline-empty">등록된 일정이 없습니다.</div>'}
