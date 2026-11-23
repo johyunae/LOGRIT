@@ -17,7 +17,8 @@ function app() {
 }
 test('a new schedule never inherits same-day photos; editing shows only its own photos',()=>{
     const a=app();a.run(`calendarPhotoIndex=[{id:'legacy',date:'2026-10-23',thumbnail:'old'},{id:'a',date:'2026-10-23',recordId:'first',thumbnail:'a'},{id:'b',date:'2026-10-23',recordId:'second',thumbnail:'b'}]; currentPhotoRecordId='new'; refreshMemoPhotos();`);
-    assert.ok(a.nodes['memo-photo-list'].innerHTML.includes('사진을 추가하면'));
+    assert.equal(a.nodes['memo-photo-list'].innerHTML, '');
+    assert.equal(a.nodes['memo-photo-add'].disabled, false);
     a.run(`currentPhotoRecordId='first'; refreshMemoPhotos();`);
     assert.ok(a.nodes['memo-photo-list'].innerHTML.includes('data-photo-id="a"'));
     assert.ok(!a.nodes['memo-photo-list'].innerHTML.includes('data-photo-id="b"'));
