@@ -202,6 +202,7 @@
         .record-input-hint > span { display:none; position:absolute; inset:14px 14px auto; font-size:13px; line-height:1.2; color:var(--text-dim); pointer-events:none; }
         .record-input-hint > :placeholder-shown + span { display:block; }
         .record-input-hint .hint-english { opacity:.7; font-weight:normal; overflow-wrap:anywhere; }
+        #f-note { display:block; field-sizing:content; min-height:52px; resize:vertical; overflow-wrap:anywhere; }
         .record-passenger-name { display:block; field-sizing:content; min-height:5rem; overflow-wrap:anywhere; resize:none; }
         .tmap-button { min-height:44px; padding:8px 16px; border:1px solid var(--border-color); border-radius:12px; background:var(--sub-bg); font-weight:800; }
         .tmap-button[hidden] { display:none; }
@@ -2082,7 +2083,7 @@
                         </div>
                         <input id="f-pickup-contact" type="hidden">
                         <label class="record-input-hint"><input id="f-pickup-company" placeholder=" " aria-label="회사명 Company" type="text" class="input-field"><span aria-hidden="true">회사명 <b class="hint-english">Company</b></span></label>
-                        <label class="record-input-hint"><textarea id="f-note" placeholder=" " aria-label="상세 메모 Note" class="input-field h-36 p-5 leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea><span aria-hidden="true">상세 메모 <b class="hint-english">Note</b></span></label>
+                        <label class="record-input-hint"><textarea id="f-note" placeholder=" " aria-label="상세 메모 Note" rows="1" class="input-field leading-relaxed text-[16px]" onfocus="setTimeout(() => this.scrollIntoView({behavior:'smooth', block:'center'}), 250)"></textarea><span aria-hidden="true">상세 메모 <b class="hint-english">Note</b></span></label>
                         <section id="memo-photo-section" class="px-1 pt-2" aria-label="메모 아래 첨부 사진">
                             <div class="flex items-center justify-between gap-2">
                                 <span class="text-[14px] font-bold text-important">첨부 사진 Attachments</span>
