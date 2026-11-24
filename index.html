@@ -218,7 +218,7 @@
         .record-editor-shell h3 + span { display:none; }
 
     </style>
-    <script src="/LOGRIT/booking-image.js?v=20261112-names"></script>
+    <script src="/LOGRIT/booking-image.js?v=20261125-contact"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="pb-40 no-scrollbar">
@@ -1127,7 +1127,7 @@
             if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('Invalid schedule');
             const record = {};
             const strings = { id: 100, date: 10, time: 5, supplier: 10000, note: 100000, departure: 10000,
-                arrival: 10000, color: 30, importLinkId: 100, paymentCheckKey: 10000, paymentCheckLabel: 10000, passengerName: 10000, pickupCompany: 10000, pickupContactKey: 36 };
+                arrival: 10000, color: 30, importLinkId: 100, paymentCheckKey: 10000, paymentCheckLabel: 10000, passengerName: 10000, contactPhone: 1000, pickupCompany: 10000, pickupContactKey: 36 };
             for (const [key, max] of Object.entries(strings)) {
                 if (source[key] === undefined) continue;
                 if (typeof source[key] !== 'string' || source[key].length > max) throw new Error('Invalid schedule field');
@@ -1597,7 +1597,8 @@
         window.parseAutoInputText = (raw, imageRemark = '', fromImage = false) => {
             const text = String(raw || '').replace(/\r/g, '').replace(/\\n/g, '\n').trim();
             if (!text) { showToast('붙여넣을 내용이 없습니다.'); return; }
-            const lines = text.split('\n').map(v => v.trim().replace(/^[.．•·●]+\s*(?=\S)/, '')).filter(Boolean);
+            const contact = LogritBookingImage.splitContact(text);
+            const lines = contact.text.split('\n').map(v => v.trim().replace(/^[.．•·●]+\s*(?=\S)/, '')).filter(Boolean);
             const used = new Set();
             const set = (id, value) => { const el = document.getElementById(id); if (el && value !== '' && value != null) el.value = value; };
             const markIndex = i => { if(i >= 0) used.add(i); };
@@ -1648,7 +1649,7 @@
             }
             const isRequestLine=v=>/안녕하세요|감사합니다|부탁|알려드|비행편은|\bplease\b|\bthank(?:s|\s+you)\b/i.test(v);
             // 예약 표: 날짜 / 요일 / 픽업시간 / 인원 / 손님 / 출발 / 도착 / 편명 / 항공시간.
-            let name='';
+            let name=findLabel('이름','성함','고객명','name','passenger');
             if(timeIndex>=0 && /^(?:[01]?\d|2[0-3])[:：][0-5]\d$/.test(lines[timeIndex])) {
                 let p=timeIndex+1;
                 while(p<lines.length && /^(mon|tue|wed|thu|fri|sat|sun)$/i.test(lines[p])) p++;
@@ -1688,8 +1689,9 @@
             if (flightIndex>=0 && (arrival.includes(flight) || departure===flight)) markIndex(flightIndex);
             const dateOnly=/^(?:(?:20\d{2})\s*[.\/-]\s*)?\d{1,2}\s*(?:월|[.\/-])\s*\d{1,2}\s*일?$|^\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:[-\s]20\d{2})?$|^(?:mon|tue|wed|thu|fri|sat|sun)$/i;
             const remaining=lines.filter((line,i)=>!used.has(i) && line!==customerName && !dateOnly.test(line) && !/^(?:[01]?\d|2[0-3])[:：][0-5]\d$/.test(line) && !/^(?:안녕하세요|감사합니다|hello|thank\s+you|thanks)[\s,.!。]*$/i.test(line));
-            if (fromImage) set('f-passenger-name',customerName);
-            const note=[...new Set([fromImage ? '' : customerName,remark,...remaining].filter(Boolean))].join('\n');
+            set('f-passenger-name',customerName);
+            set('f-contact-phone',contact.phone);
+            const note=[...new Set([remark,...remaining].filter(Boolean))].join('\n');
             set('f-date',date);set('f-departure',koreanBookingPlace(departure));set('f-arrival',koreanBookingPlace(arrival));
             set('f-time',time);set('f-people',people);set('f-supplier',supplier);set('f-amount-display',amount);
             const noteEl=document.getElementById('f-note');if(noteEl)noteEl.value=note;
@@ -1704,7 +1706,7 @@
             const records = fresh.map(row => ({
                 id:newPhotoRecordId(), date:row.date, time:row.time, people:Number(row.people),
                 departure:row.departure, arrival:row.arrival, note:row.note || '내용없음',
-                passengerName:row.passengerName || '',
+                passengerName:row.passengerName || '', contactPhone:row.contactPhone || '',
                 amount:0, supplier:'미지정', color:'', extraChecks:[],
                 cardPaymentDone:false, cardPaymentAmount:0, updatedAt:now
             }));
@@ -1713,7 +1715,7 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
             db = next;
             document.getElementById('auto-input-modal')?.remove();
-            const emptyNewEditor = !currentEditId && !['f-departure','f-arrival','f-time','f-people','f-note','f-passenger-name','f-pickup-company','f-pickup-contact','f-supplier','f-amount-display'].some(id => document.getElementById(id)?.value) && !calendarPhotoIndex.some(photo => photo.recordId === currentPhotoRecordId) && !extraEditorChecks().length;
+            const emptyNewEditor = !currentEditId && !['f-departure','f-arrival','f-time','f-people','f-note','f-passenger-name','f-contact-phone','f-pickup-company','f-pickup-contact','f-supplier','f-amount-display'].some(id => document.getElementById(id)?.value) && !calendarPhotoIndex.some(photo => photo.recordId === currentPhotoRecordId) && !extraEditorChecks().length;
             if (emptyNewEditor) {
                 document.getElementById('modal-container')?.remove();
                 localStorage.removeItem('logrit_draft_data');
@@ -1891,8 +1893,10 @@
                         if(arrivalInput)arrivalInput.value=arrival;
                         const note=document.getElementById('f-note');
                         const customerName=(row[4]||'').replace(/\\n/g,' ').replace(/\s+/g,' ').replace(/\s*\+\s*(\d+)$/,' +$1').trim();
-                        set('f-passenger-name',customerName);
-                        if(note) note.value=imageRemark;
+                        const contact=LogritBookingImage.splitContact([customerName,imageRemark].filter(Boolean).join('\n'));
+                        set('f-passenger-name',LogritBookingImage.splitContact(customerName).text);
+                        set('f-contact-phone',contact.phone);
+                        if(note) note.value=LogritBookingImage.splitContact(imageRemark).text;
                         document.getElementById('auto-input-modal')?.remove(); window.saveDraft();
                         const unread=[];
                         if(!date)unread.push('날짜');
@@ -2071,6 +2075,7 @@
                             <button type="button" onclick="window.usePickupContact()" aria-label="휴대폰 연락처 열기 Open Contacts" title="연락처 Contacts" class="shrink-0 p-3 rounded-xl border border-custom"><i data-lucide="phone" aria-hidden="true"></i></button>
                         </div>
                         <label class="record-input-hint"><textarea id="f-passenger-name" placeholder=" " aria-label="이름 Name" rows="3" class="input-field record-passenger-name leading-relaxed"></textarea><span aria-hidden="true">이름 <b class="hint-english">Name</b></span></label>
+                        <label class="record-input-hint"><input id="f-contact-phone" placeholder=" " aria-label="연락처 Contact" type="tel" class="input-field"><span aria-hidden="true">연락처 <b class="hint-english">Contact</b></span></label>
                         <div class="flex items-center gap-2 text-sm" aria-live="polite">
                             <span id="pickup-contact-status"></span>
                             <button id="pickup-contact-change" type="button" onclick="window.usePickupContact(true)" class="underline" hidden>연락처 변경 Change Contact</button>
@@ -2125,7 +2130,9 @@
 
             document.getElementById('f-import-link-id').value = (draftData || it || {}).importLinkId || '';
             const paymentSeed = draftData || it || {};
-            document.getElementById('f-passenger-name').value = paymentSeed.passengerName || '';
+            const legacyContact = LogritBookingImage.splitContact(paymentSeed.passengerName || '');
+            document.getElementById('f-passenger-name').value = legacyContact.text;
+            document.getElementById('f-contact-phone').value = paymentSeed.contactPhone || legacyContact.phone;
             document.getElementById('f-pickup-company').value = paymentSeed.pickupCompany || '';
             document.getElementById('f-pickup-contact').value = paymentSeed.pickupContactKey || '';
             refreshPickupContact();
@@ -2146,6 +2153,7 @@
         function pickupContactEditorValues() {
             return {
                 passengerName: document.getElementById('f-passenger-name')?.value.trim() || '',
+                contactPhone: document.getElementById('f-contact-phone')?.value.trim() || '',
                 pickupCompany: document.getElementById('f-pickup-company')?.value.trim() || '',
                 pickupContactKey: document.getElementById('f-pickup-contact')?.value || ''
             };

@@ -45,7 +45,7 @@ test('different row dates, routes, people and remarks stay separate across a yea
     const second=booking.rowBooking(cells({0:'1-Jan',2:'19:35',3:'5',5:'Busan International Airport',6:'Mijin Tower Palace',7:'KE1407',10:'SECOND ONLY'}),'2026-11-03',first.date,c.readBookingDate,c.koreanBookingPlace,c.bookingAirportTerminal);
     assert.equal(first.date,'2026-12-12');assert.equal(first.time,'07:00');assert.equal(first.people,'4');assert.equal(first.arrival,'국제 KE1406');
     assert.equal(second.date,'2027-01-01');assert.equal(second.time,'19:35');assert.equal(second.people,'5');assert.equal(second.departure,'KE1407');assert.equal(second.arrival,'미진타워팰리스');
-    assert.equal(first.passengerName,cells()[4]);assert.equal(first.note,'HL');assert.ok(!first.note.includes('SECOND ONLY'));assert.ok(!second.note.includes('HL'));assert.ok(!second.note.includes('DRIVER'));
+    assert.equal(first.passengerName,'Alexandre MILENKOVIC family');assert.equal(first.contactPhone,'010-5175-6630');assert.equal(first.note,'HL');assert.ok(!first.note.includes('SECOND ONLY'));assert.ok(!second.note.includes('HL'));assert.ok(!second.note.includes('DRIVER'));
     assert.equal(booking.validate([first,second]).length,2);
 });
 test('explicit years are respected; unreadable dates, people and flight numbers are left for correction',()=>{
@@ -121,7 +121,7 @@ test('review supports selection, corrections, cancellation and errors before sav
         form.onsubmit({preventDefault(){}});assert.equal(saved,undefined);
         assert.ok(dom.nodes.find(n=>n.attributes.role==='alert').textContent.includes('날짜'));
         const passenger=dom.nodes.find(n=>n.attributes['aria-label']==='1번째 이름 (Name)');
-        assert.equal(passenger.tag,'textarea');assert.equal(passenger.value,cells()[4]);
+        assert.equal(passenger.tag,'textarea');assert.equal(passenger.value,'Alexandre MILENKOVIC family');
         passenger.value='Jane Kim, Alex Lee, Sam Park';
         dates[0].value='2026-12-13';form.onsubmit({preventDefault(){}});
         assert.equal(saved.length,1);assert.equal(saved[0].date,'2026-12-13');assert.equal(saved[0].passengerName,'Jane Kim, Alex Lee, Sam Park');assert.ok(dom.document.getElementById('booking-image-review')===undefined);
@@ -152,3 +152,9 @@ test('booking rows localize known buildings with a leading unit number',()=>{
     }
     assert.equal(parser().koreanBookingPlace('#102-1202, Unlisted Hotel'), '#102-1202, Unlisted Hotel');
 });
+
+ test('contact extraction keeps names and separates local and international numbers',()=>{
+    assert.deepEqual(booking.splitContact('Takuya YAMASAKI (010-7304-6630)'),{text:'Takuya YAMASAKI',phone:'010-7304-6630'});
+    assert.equal(booking.splitContact('연락처: +82 10-7304-6630').phone,'+82 10-7304-6630');
+    assert.equal(booking.splitContact('11/25\n07:10\nKE1406\n90000').phone,'');
+ });

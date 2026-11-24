@@ -2,9 +2,17 @@
     'use strict';
     const fields = [
         ['date', '날짜', 'date'], ['time', '시간', 'time'], ['people', '인원', 'number'],
-        ['passengerName', '이름 (Name)', 'textarea'],
+        ['passengerName', '이름 (Name)', 'textarea'], ['contactPhone', '연락처 (Contact)', 'tel'],
         ['departure', '출발지', 'text'], ['arrival', '도착지', 'text'], ['note', '메모', 'textarea']
     ];
+    function splitContact(value) {
+        const phones=[];
+        const text=String(value || '').replace(/(?<![\d])(?:\+\d{1,3}[ .-]?)?(?:0\d{1,2}|[1-9]\d{1,3})[ .-]?\d{3,4}[ .-]?\d{4}(?!\d)/g, phone=>{
+            if(!phones.includes(phone.trim()))phones.push(phone.trim());
+            return '';
+        }).replace(/\(\s*\)/g,'').replace(/(?:연락처|전화번호|전화|휴대폰|mobile|phone|tel|contact)\s*[:：]?\s*(?=$|\n)/gi,'').replace(/[ \t]+/g,' ').trim();
+        return {text, phone:phones.join(', ')};
+    }
     function lines(size, count, isDark) {
         const found = [];
         for (let p = 0; p < size; p++) {
@@ -56,8 +64,9 @@
             time:timeMatch ? timeMatch[1].padStart(2,'0')+':'+timeMatch[2] : '', people,
             departure:airport(cells[5]) ? flightOK : place(cells[5]),
             arrival:airport(cells[6]) ? [terminal(cells[6]),flightOK].filter(Boolean).join(' ') : place(cells[6]),
-            passengerName:cells[4] || '',
-            note:cells[10] || ''
+            passengerName:splitContact(cells[4]).text,
+            contactPhone:splitContact([cells[4],cells[10]].filter(Boolean).join('\n')).phone,
+            note:splitContact(cells[10]).text
         };
     }
     async function readRows({img, worker, status, baseDate, parseDate, place, terminal}) {
@@ -211,7 +220,7 @@
         };
         document.body.appendChild(overlay);close.focus();
     }
-    const api={detectTable,rowBooking,readRows,validate,key,freshRows,review};
+    const api={splitContact,detectTable,rowBooking,readRows,validate,key,freshRows,review};
     if(typeof module!=='undefined' && module.exports)module.exports=api;
     else root.LogritBookingImage=api;
 })(typeof window!=='undefined'?window:globalThis);
