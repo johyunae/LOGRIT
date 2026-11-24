@@ -202,6 +202,7 @@
         .record-input-hint > span { display:none; position:absolute; inset:14px 14px auto; font-size:13px; line-height:1.2; color:var(--text-dim); pointer-events:none; }
         .record-input-hint > :placeholder-shown + span { display:block; }
         .record-input-hint .hint-english { opacity:.7; font-weight:normal; overflow-wrap:anywhere; }
+        #f-departure, #f-arrival { display:block; field-sizing:content; min-height:52px; line-height:24px; overflow-wrap:anywhere; resize:vertical; }
         #f-note { display:block; field-sizing:content; min-height:52px; resize:vertical; overflow-wrap:anywhere; }
         .record-passenger-name { display:block; field-sizing:content; min-height:5rem; overflow-wrap:anywhere; resize:none; }
         .tmap-button { min-height:44px; padding:8px 16px; border:1px solid var(--border-color); border-radius:12px; background:var(--sub-bg); font-weight:800; }
@@ -2017,9 +2018,9 @@
                             <button type="button" data-pickup-features hidden class="tmap-button shrink-0" style="padding:0;width:44px;min-height:44px" onclick="window.navigateDestinationLocation()" aria-label="도착지 티맵 바로가기" title="도착지 티맵 바로가기"><i data-lucide="navigation" class="w-5 h-5 mx-auto" aria-hidden="true"></i></button>
                         </div>
                         <div class="record-route">
-                            <div class="min-w-0"><label class="record-input-hint"><input type="text" id="f-departure" placeholder=" " aria-label="출발지 Departure" onchange="window.refreshRouteLocations()" class="input-field"><span aria-hidden="true">출발지 <b class="hint-english">Departure</b></span></label></div>
+                            <div class="min-w-0"><label class="record-input-hint"><textarea id="f-departure" rows="1" placeholder=" " aria-label="출발지 Departure" onchange="window.refreshRouteLocations()" class="input-field"></textarea><span aria-hidden="true">출발지 <b class="hint-english">Departure</b></span></label></div>
                             <button type="button" onclick="window.swapRoute()" class="w-10 h-10 rounded-xl bg-sub border border-custom flex items-center justify-center active:scale-90 transition-transform cursor-pointer" aria-label="출발지 도착지 바꾸기"><i data-lucide="arrow-left-right" class="w-5 h-5"></i></button>
-                            <label class="record-input-hint"><input type="text" id="f-arrival" placeholder=" " aria-label="도착지 Arrival" onchange="window.refreshRouteLocations()" class="input-field min-w-0"><span aria-hidden="true">도착지 <b class="hint-english">Arrival</b></span></label>
+                            <label class="record-input-hint"><textarea id="f-arrival" rows="1" placeholder=" " aria-label="도착지 Arrival" onchange="window.refreshRouteLocations()" class="input-field min-w-0"></textarea><span aria-hidden="true">도착지 <b class="hint-english">Arrival</b></span></label>
                         </div>
                         <input type="hidden" id="f-pickup-location"><input type="hidden" id="f-destination-location">
                         <input type="checkbox" id="f-pickup-auto" hidden>
