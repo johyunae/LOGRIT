@@ -42,7 +42,7 @@ test('a cropped single row keeps its date separate from pickup time',()=>{
 });
 test('different row dates, routes, people and remarks stay separate across a year boundary',()=>{
     const c=parser(),first=row();
-    const second=booking.rowBooking(cells({0:'1-Jan',2:'19:35',3:'5',5:'Busan International Airport',6:'Mijin Tower Palace',7:'KE1407',10:'SECOND ONLY'}),'2026-11-03',first.date,c.readBookingDate,c.koreanBookingPlace,c.bookingAirportTerminal);
+    const second=booking.rowBooking(cells({0:'1-Jan',1:'FRI',2:'19:35',3:'5',5:'Busan International Airport',6:'Mijin Tower Palace',7:'KE1407',10:'SECOND ONLY'}),'2026-11-03',first.date,c.readBookingDate,c.koreanBookingPlace,c.bookingAirportTerminal);
     assert.equal(first.date,'2026-12-12');assert.equal(first.time,'07:00');assert.equal(first.people,'4');assert.equal(first.arrival,'국제 KE1406');
     assert.equal(second.date,'2027-01-01');assert.equal(second.time,'19:35');assert.equal(second.people,'5');assert.equal(second.departure,'KE1407');assert.equal(second.arrival,'미진타워팰리스');
     assert.equal(first.passengerName,'Alexandre MILENKOVIC family');assert.equal(first.contactPhone,'010-5175-6630');assert.equal(first.note,'HL');assert.ok(!first.note.includes('SECOND ONLY'));assert.ok(!second.note.includes('HL'));assert.ok(!second.note.includes('DRIVER'));
@@ -66,8 +66,8 @@ test('retrying import skips existing rows and duplicate rows within the selected
 });
 test('OCR uses a separate crop for each cell and each row, keeping even failed rows for review',async()=>{
     const g=gridImage(3),c=parser(),crops=[],values=[];
-    const targets=[0,2,3,4,5,6,7,10];
-    for(let r=0;r<3;r++)for(const ci of targets)values.push(cells({0:r===0?'12-Dec':`${r}-Jan`,2:`0${7+r}:00`,10:`ROW ${r+1}`})[ci]);
+    const targets=[0,1,2,3,4,5,6,7,10];
+    for(let r=0;r<3;r++)for(const ci of targets)values.push(cells({0:r===0?'12-Dec':`${r}-Jan`,1:'',2:`0${7+r}:00`,10:`ROW ${r+1}`})[ci]);
     const original=global.document;
     global.document={createElement:()=>{
         const canvas={};canvas.getContext=()=>({drawImage:(...args)=>{if(args.length>3)crops.push(args.slice(1,5));},fillRect(){},getImageData:()=>({data:g.pixels.slice()}),putImageData(){}});return canvas;
@@ -75,8 +75,8 @@ test('OCR uses a separate crop for each cell and each row, keeping even failed r
     try {
         const worker={async setParameters(){},async recognize(){return {data:{text:values.shift()}};}};
         const rows=await booking.readRows({img:{width:g.width,height:g.height},worker,status:{},baseDate:'2026-11-03',parseDate:c.readBookingDate,place:c.koreanBookingPlace,terminal:c.bookingAirportTerminal});
-        assert.equal(rows.length,3);assert.equal(crops.length,24);
-        assert.ok(crops[0][1]+crops[0][3]<crops[8][1]);assert.ok(crops[8][1]+crops[8][3]<crops[16][1]);
+        assert.equal(rows.length,3);assert.equal(crops.length,27);
+        assert.ok(crops[0][1]+crops[0][3]<crops[9][1]);assert.ok(crops[9][1]+crops[9][3]<crops[18][1]);
         assert.ok(rows.every((row,i)=>row.note.endsWith(`ROW ${i+1}`)));assert.equal(rows[2].date,'2027-01-02');
     } finally {global.document=original;}
 });
@@ -158,3 +158,15 @@ test('booking rows localize known buildings with a leading unit number',()=>{
     assert.equal(booking.splitContact('연락처: +82 10-7304-6630').phone,'+82 10-7304-6630');
     assert.equal(booking.splitContact('11/25\n07:10\nKE1406\n90000').phone,'');
  });
+
+test('January-only screenshot infers 2027 from November 2026 and checks weekday',()=>{
+    const first=row({0:'4-Jan',1:'MON',2:'04:30'});
+    const c=parser();
+    const second=booking.rowBooking(cells({0:'19-Jan',1:'TUE',2:'19:35'}),'2026-11-25',first.date,c.readBookingDate,c.koreanBookingPlace,c.bookingAirportTerminal);
+    assert.equal(first.date,'2027-01-04');assert.equal(second.date,'2027-01-19');
+    assert.equal(c.readBookingDate('1/4','2026-11-25'),'2027-01-04');
+    assert.equal(c.readBookingDate('4-Jan-2026','2026-11-25'),'2026-01-04');
+    assert.equal(c.readBookingDate('9-Nov','2026-11-25'),'2026-11-09');
+    assert.equal(row({0:'4-Jan-2026',1:'MON'}).date,'2026-01-04');
+    assert.equal(booking.rowBooking(cells({0:'4-Jan',1:'MON'}),'2026-01-01','',c.readBookingDate,c.koreanBookingPlace,c.bookingAirportTerminal).date,'2027-01-04');
+});

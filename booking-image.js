@@ -52,7 +52,18 @@
             const oldMonth = Number(previousDate.slice(5,7));
             const month = Number(date.slice(5,7));
             const year = Number(previousDate.slice(0,4)) + (oldMonth >= 10 && month <= 2 ? 1 : 0);
-            date = parseDate(cells[0], `${year}-01-01`);
+            date = parseDate(cells[0], `${year}-01-01`, false);
+        }
+        // Use the DAY column to check an inferred year, never overriding a printed year.
+        const weekdays = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+        const weekday = weekdays.indexOf(String(cells[1] || '').trim().slice(0,3).toUpperCase());
+        if (!explicitYear && date && weekday >= 0) {
+            const year = Number(date.slice(0,4));
+            if (new Date(date+'T12:00:00').getDay() !== weekday) {
+                const candidates = [year+1, year-1].map(y=>parseDate(cells[0], `${y}-01-01`, false))
+                    .filter(d=>d && new Date(d+'T12:00:00').getDay() === weekday);
+                if (candidates.length === 1) date = candidates[0];
+            }
         }
         const flight = (cells[7] || '').replace(/\s+/g,'').toUpperCase();
         const flightOK = /^(?:[A-Z][A-Z0-9]|[0-9][A-Z])\d{2,5}$/.test(flight) ? flight : '';
@@ -79,7 +90,7 @@
         const bookings = [];
         for (let r=0; r<grid.rows.length; r++) {
             const row = grid.rows[r], cells = Array(11).fill('');
-            for (const ci of [0,2,3,4,5,6,7,10]) {
+            for (const ci of [0,1,2,3,4,5,6,7,10]) {
                 if (status) status.textContent = `일정 ${r+1}/${grid.rows.length}건 읽는 중…`;
                 const left=grid.xs[ci]+2, width=grid.xs[ci+1]-left-2, height=row.bottom-row.top;
                 const scale=Math.min(4,2500/Math.max(width,height));
@@ -149,7 +160,7 @@
         const close=document.createElement('button');close.type='button';close.textContent='닫기';close.onclick=()=>overlay.remove();
         heading.append(title,close);panel.appendChild(heading);
         const help=document.createElement('p');help.className='text-sm text-dim mb-3';
-        help.textContent='등록할 일정을 선택하고 날짜·시간·출발·도착을 확인해 주세요. 연도가 없는 날짜는 기준 연도로 표시하며, 12월 다음 1월은 다음 해로 표시합니다.';
+        help.textContent='등록할 일정을 선택하고 날짜·시간·출발·도착을 확인해 주세요. 연도가 없는 날짜는 기준 날짜와 표의 요일을 확인하며, 연말에 읽은 1·2월은 다음 해로 표시합니다.';
         panel.appendChild(help);
         const form=document.createElement('form');form.style.cssText='display:flex;flex-direction:column;min-height:0';panel.appendChild(form);
         const list=document.createElement('div');list.style.cssText='overflow-y:auto;min-height:0';form.appendChild(list);

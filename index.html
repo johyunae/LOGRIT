@@ -220,7 +220,7 @@
         .record-editor-shell h3 + span { display:none; }
 
     </style>
-    <script src="/LOGRIT/booking-image.js?v=20261125-contact"></script>
+    <script src="/LOGRIT/booking-image.js?v=20261125-year"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body class="pb-40 no-scrollbar">
@@ -1569,7 +1569,7 @@
         };
 
 
-        function readBookingDate(raw, base = '') {
+        function readBookingDate(raw, base = '', inferRollover = true) {
             const text = String(raw || '').replace(/[–—−]/g, '-').replace(/\s+/g, ' ').trim();
             const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
             const corrected = text.replace(/^(\d{1,2}\s*[-/.]?\s*)Now\.?(?=$|[\s-]+20\d{2}$)/i, '$1Nov');
@@ -1581,6 +1581,9 @@
             else if (numeric) { year = Number(numeric[1]); month = Number(numeric[2]); day = Number(numeric[3]); }
             else if (short) { year = Number(base.slice(0,4)); month = Number(short[1]); day = Number(short[2]); }
             else return '';
+            // Upcoming January/February bookings read near year-end belong to next year.
+            const explicitYear = !!numeric || !!(english && english[3]);
+            if (inferRollover && !explicitYear && Number(base.slice(5,7)) >= 10 && month <= 2) year++;
             const check = new Date(year, month-1, day);
             return check.getFullYear() === year && check.getMonth() === month-1 && check.getDate() === day
                 ? `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}` : '';
