@@ -1,0 +1,20 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
+const code=html.slice(html.indexOf('        const recordSortOrders'),html.indexOf('        function render()'));
+test('registration order survives filters, edits and saved preference independently of schedule dates',()=>{
+ const rows=[{id:'first',date:'2027-01-01',note:'ride',amount:1},{id:'second',date:'2025-01-01',note:'ride',amount:2}];
+ const output={innerHTML:''},saved=new Map();
+ const c={db:rows,filterMonth:null,searchTerm:'',selectedSearchColors:new Set(),document:{getElementById:()=>output},localStorage:{getItem:k=>saved.get(k),setItem:(k,v)=>saved.set(k,v)},renderItemCard:x=>x.id,sortMaster:r=>[...r].sort((a,b)=>a.date.localeCompare(b.date))};
+ c.window=c;vm.createContext(c);vm.runInContext(code,c);
+ c.renderListContent();assert.equal(output.innerHTML,'secondfirst');
+ c.setRecordSortOrder('created-asc');assert.equal(output.innerHTML,'firstsecond');
+ c.db[0]={...c.db[0],updatedAt:Date.now()};c.renderListContent();assert.equal(output.innerHTML,'firstsecond');
+ c.setRecordSortOrder('asc');assert.equal(output.innerHTML,'secondfirst');
+ c.setRecordSortOrder('created-desc');c.filterMonth='2027';c.renderListContent();assert.equal(output.innerHTML,'first');
+ c.filterMonth=null;vm.runInContext(code.replace('const recordSortOrders','var recordSortOrders').replace('let recordSortOrder','var recordSortOrder'),vm.createContext({...c,localStorage:c.localStorage,window:c}));
+ assert.equal(saved.get('logrit_record_sort'),'created-desc');
+ assert.deepEqual(rows.map(x=>x.id),['first','second']);
+});
